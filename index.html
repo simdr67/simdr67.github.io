@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Тест: Ферменты</title>
+<style>
+  :root {
+    --bg: #f4f7fb; --card: #ffffff; --primary: #3b6ea5; --primary-dark: #2c527a;
+    --border: #d7e2ee; --text: #22303f; --muted: #6b7c8f;
+    --correct: #2e9e5b; --wrong: #d64545; --warn: #e0a800;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: rgba(59,110,165,0.15); }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+  .container { max-width: 860px; margin: 0 auto; padding: 18px 14px 60px; }
+  header { text-align: center; margin-bottom: 18px; }
+  header h1 { font-size: 22px; margin: 0 0 6px; color: var(--primary-dark); }
+  header p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  /* Прогресс-бар: без sticky, чтобы на iOS ничего не перекрывал */
+  .progress-bar {
+    background: #eaf1f8;
+    padding: 8px 14px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .progress-inner { display: flex; align-items: center; gap: 10px; }
+  .progress-track { flex: 1; height: 8px; background: #d6e2ef; border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease; }
+  .progress-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+  .question-card {
+    background: var(--card); border-radius: 12px; padding: 16px 14px; margin-bottom: 14px;
+    box-shadow: 0 2px 6px rgba(34,48,63,0.05); border: 1px solid var(--border);
+  }
+  .question-card.correct-card { border-left: 4px solid var(--correct); }
+  .question-card.wrong-card { border-left: 4px solid var(--wrong); }
+
+  .q-header { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 12px; }
+  .q-num {
+    background: var(--primary); color: #fff; font-weight: 700; font-size: 12px;
+    border-radius: 6px; padding: 2px 8px; flex-shrink: 0; margin-top: 2px;
+  }
+  .q-text { font-weight: 600; font-size: 15px; }
+  .q-type-hint { font-size: 12px; color: var(--muted); font-weight: 400; display: block; margin-top: 3px; }
+
+  .options { display: flex; flex-direction: column; gap: 6px; }
+  .option {
+    display: flex; gap: 8px; align-items: flex-start; padding: 10px;
+    border-radius: 8px; border: 1px solid var(--border); cursor: pointer;
+    font-size: 14px; background: #fff;
+  }
+  .option:active { background: #eef4fa; }
+  .option input { margin-top: 3px; accent-color: var(--primary); flex-shrink: 0; width: 18px; height: 18px; }
+  .option.selected { border-color: var(--primary); background: #e8f1fa; }
+  .option.correct-opt { border-color: var(--correct); background: #e9f7ef; }
+  .option.wrong-opt { border-color: var(--wrong); background: #fdeaea; }
+  .opt-key { font-weight: 700; color: var(--primary-dark); flex-shrink: 0; }
+
+  .matching { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .match-row {
+    display: flex; gap: 8px; align-items: center; background: #f7fafd;
+    border-radius: 8px; padding: 8px; border: 1px solid var(--border);
+  }
+  .match-left { flex: 1; font-size: 13px; }
+  .match-left .key { font-weight: 700; color: var(--primary-dark); margin-right: 4px; }
+  .drop-zone {
+    width: 62px; min-height: 40px; border: 2px dashed #b9cde0; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; background: #fff;
+    flex-shrink: 0; transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    font-size: 12px; color: var(--muted); text-align: center;
+  }
+  .drop-zone.armed { border-color: var(--warn); background: #fffaf0; }
+  .drop-zone.filled { border-style: solid; border-color: var(--primary); background: #eaf2fb; }
+  .drop-zone:active { transform: scale(0.97); }
+
+  .chip-pool {
+    display: flex; flex-wrap: wrap; gap: 6px; padding: 8px;
+    background: #f0f5fb; border-radius: 8px; border: 1px dashed #c4d6e7; min-height: 48px;
+  }
+  .chip {
+    background: #fff; border: 1px solid #b9cde0; border-radius: 8px; padding: 8px 10px;
+    font-size: 13px; cursor: pointer; display: flex; gap: 6px; align-items: flex-start;
+    max-width: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    user-select: none; -webkit-user-select: none;
+  }
+  .chip:active { transform: scale(0.97); }
+  .chip.selected-chip { border-color: var(--warn); background: #fffaf0; box-shadow: 0 0 0 2px rgba(224,168,0,0.25); }
+  .chip .chip-key { font-weight: 700; color: var(--primary-dark); flex-shrink: 0; }
+  .drop-zone .chip { margin: 0; padding: 4px 6px; font-size: 12px; border-radius: 6px; }
+  .drop-zone .chip .chip-text { display: none; }
+  .drop-zone .chip .chip-key { color: var(--primary-dark); }
+
+  .btn {
+    display: block; width: 100%; background: var(--primary); color: #fff; border: none;
+    border-radius: 10px; padding: 14px 20px; font-size: 16px; font-weight: 600;
+    cursor: pointer; margin-top: 8px;
+  }
+  .btn:active { background: var(--primary-dark); }
+  .btn:disabled { background: #a9bdd2; }
+
+  .result-section {
+    margin-top: 22px; background: var(--card); border-radius: 12px; padding: 16px;
+    border: 1px solid var(--border);
+  }
+  .score-box { text-align: center; padding: 14px; border-radius: 10px; margin-bottom: 14px; font-size: 20px; font-weight: 700; }
+  .score-good { background: #e9f7ef; color: var(--correct); }
+  .score-mid { background: #fdf6e3; color: var(--warn); }
+  .score-bad { background: #fdeaea; color: var(--wrong); }
+  .result-item { border-top: 1px solid var(--border); padding: 12px 0; }
+  .result-item:first-child { border-top: none; }
+  .result-q { font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+  .result-line { font-size: 13px; margin: 3px 0; }
+  .result-line .label { color: var(--muted); }
+  .result-correct { color: var(--correct); font-weight: 600; }
+  .result-wrong { color: var(--wrong); font-weight: 600; }
+  .result-ok { color: var(--correct); font-weight: 700; }
+
+  .error-box {
+    background: #fdeaea; color: #8a2a2a; border: 1px solid #f3c4c4;
+    padding: 14px; border-radius: 10px; font-size: 14px; margin: 14px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar">
+  <div class="progress-inner">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">0 / 15</div>
+  </div>
+</div>
+
+<div class="container">
+  <header>
+    <h1>Тест: Ферменты</h1>
+    <p>15 случайных вопросов · один или несколько ответов · соответствия</p>
+  </header>
+
+  <div id="errorBox" class="error-box" style="display:none;"></div>
+  <form id="quizForm" autocomplete="off"></form>
+  <button type="button" class="btn" id="submitBtn">Проверить ответы</button>
+  <div id="resultArea"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // -------- Данные --------
+  var singlePool = [
+    { id: 3, type: 'single',
+      question: 'Глюкокиназа, в отличие от гексокиназы:',
+      options: [
+        {key:'а', text:'имеет более высокое сродство к глюкозе'},
+        {key:'б', text:'катализирует реакцию: Глюкоза + АТФ → Глюкозо-6-фосфат + АДФ'},
+        {key:'в', text:'содержится в клетках многих органов'},
+        {key:'г', text:'имеет более высокое значение Км'},
+        {key:'д', text:'катализирует обратимую реакцию'}
+      ], correct: ['г'] },
+    { id: 9, type: 'single',
+      question: 'Киназы катализируют превращения:',
+      options: [
+        {key:'а', text:'перенос групп внутри молекулы'},
+        {key:'б', text:'перенос фосфатной группы от молекулы донора к акцептору'},
+        {key:'в', text:'образование С–О-связей'},
+        {key:'г', text:'разрыв С–С-связей'},
+        {key:'д', text:'присоединение воды'}
+      ], correct: ['б'] },
+    { id: 11, type: 'single',
+      question: 'Утверждение, правильно характеризующее удельную активность ферментов:',
+      options: [
+        {key:'а', text:'количество фермента, которое образует 1 моль продукта в секунду'},
+        {key:'б', text:'количество фермента, которое образует 1 моль продукта в секунду при стандартных значениях pH'},
+        {key:'в', text:'количество фермента, катализирующее превращение 1 мкмоль субстрата за 1 мин'},
+        {key:'г', text:'активность фермента в присутствии наиболее предпочтительного субстрата'},
+        {key:'д', text:'количество единиц активности фермента в 1 мг белка'}
+      ], correct: ['д'] },
+    { id: 12, type: 'single',
+      question: 'Протекание реакции (аланин + α-кетоглутарат ↔ пируват + глутамат) нарушается при недостатке витамина:',
+      options: [
+        {key:'а', text:'В1'}, {key:'б', text:'В2'}, {key:'в', text:'В6'},
+        {key:'г', text:'РР'}, {key:'д', text:'биотина'}
+      ], correct: ['в'] },
+    { id: 13, type: 'single',
+      question: 'Протекание реакции (гистидин → гистамин + CO₂, фермент гистидаза) нарушается при недостатке витамина:',
+      options: [
+        {key:'а', text:'В1'}, {key:'б', text:'В2'}, {key:'в', text:'В6'},
+        {key:'г', text:'РР'}, {key:'д', text:'биотина'}
+      ], correct: ['в'] },
+    { id: 14, type: 'single',
+      question: 'Протекание реакции (пируват + CO₂ + АТФ + H₂O → оксалоацетат + АДФ + Фн) нарушается при недостатке витамина:',
+      options: [
+        {key:'а', text:'В1'}, {key:'б', text:'В2'}, {key:'в', text:'В6'},
+        {key:'г', text:'РР'}, {key:'д', text:'биотина'}
+      ], correct: ['д'] },
+    { id: 15, type: 'single',
+      question: 'К какому классу относится фермент, катализирующий реакцию превращения глутамата в ГАМК (тормозной медиатор ЦНС)?',
+      options: [
+        {key:'а', text:'оксидоредуктаза'}, {key:'б', text:'трансфераза'},
+        {key:'в', text:'изомераза'}, {key:'г', text:'лиаза'}, {key:'д', text:'лигаза'}
+      ], correct: ['г'] },
+    { id: 16, type: 'single',
+      question: 'К какому классу относится фермент, катализирующий реакцию превращения сукцината в фумарат?',
+      options: [
+        {key:'а', text:'оксидоредуктаза'}, {key:'б', text:'трансфераза'},
+        {key:'в', text:'изомераза'}, {key:'г', text:'гидролаза'}, {key:'д', text:'лиаза'}
+      ], correct: ['а'] },
+    { id: 17, type: 'single',
+      question: 'К какому классу относится фермент, катализирующий реакцию превращения этанола в печени в токсичный метаболит — ацетальдегид (СН₃СН₂ОН → СН₃СНО)?',
+      options: [
+        {key:'а', text:'оксидоредуктаза'}, {key:'б', text:'трансфераза'},
+        {key:'в', text:'изомераза'}, {key:'г', text:'гидролаза'}, {key:'д', text:'лиаза'}
+      ], correct: ['а'] },
+    { id: 18, type: 'single',
+      question: 'К какому классу относится фермент, катализирующий реакцию превращения жира (триацилглицерол + 3H₂O → глицерин + 3 R-COOH)?',
+      options: [
+        {key:'а', text:'оксидоредуктаза'}, {key:'б', text:'трансфераза'},
+        {key:'в', text:'изомераза'}, {key:'г', text:'гидролаза'}, {key:'д', text:'лиаза'}
+      ], correct: ['г'] },
+    { id: 19, type: 'single',
+      question: 'К какому классу относится фермент, катализирующий реакцию активации глюкозы (глюкоза + АТФ → глюкозо-6-фосфат + АДФ)?',
+      options: [
+        {key:'а', text:'оксидоредуктаза'}, {key:'б', text:'трансфераза'},
+        {key:'в', text:'изомераза'}, {key:'г', text:'гидролаза'}, {key:'д', text:'лиаза'}
+      ], correct: ['б'] },
+    { id: 20, type: 'single',
+      question: 'К какому классу относится фермент, катализирующий реакцию протеолиза (—NH—CHR—CO—NH—CHR—CO— → —NH—CHR—COOH + NH₂—CHR—COOH)?',
+      options: [
+        {key:'а', text:'оксидоредуктаза'}, {key:'б', text:'трансфераза'},
+        {key:'в', text:'изомераза'}, {key:'г', text:'гидролаза'}, {key:'д', text:'лиаза'}
+      ], correct: ['г'] },
+    { id: 21, type: 'single',
+      question: 'К какому классу относится фермент, катализирующий реакцию метаболического пути распада глюкозы (3-фосфоглицерат ↔ 2-фосфоглицерат)?',
+      options: [
+        {key:'а', text:'оксидоредуктаза'}, {key:'б', text:'трансфераза'},
+        {key:'в', text:'изомераза'}, {key:'г', text:'гидролаза'}, {key:'д', text:'лиаза'}
+      ], correct: ['в'] },
+    { id: 22, type: 'single',
+      question: 'К какому классу относится фермент, катализирующий реакцию, важную для запасания энергии в клетках (креатин + АТФ → креатинфосфат + АДФ)?',
+      options: [
+        {key:'а', text:'оксидоредуктаза'}, {key:'б', text:'трансфераза'},
+        {key:'в', text:'изомераза'}, {key:'г', text:'гидролаза'}, {key:'д', text:'лиаза'}
+      ], correct: ['б'] },
+    { id: 23, type: 'single',
+      question: 'К какому классу относится фермент, катализирующий реакцию, важную для завершения проведения сигнала ацетилхолина в нервно-мышечных синапсах (CH₃CO—O—CH₂—CH₂—N⁺(CH₃)₃ → CH₃COOH + HO—CH₂—CH₂—N⁺(CH₃)₃)?',
+      options: [
+        {key:'а', text:'оксидоредуктаза'}, {key:'б', text:'трансфераза'},
+        {key:'в', text:'изомераза'}, {key:'г', text:'гидролаза'}, {key:'д', text:'лиаза'}
+      ], correct: ['г'] },
+    { id: 24, type: 'single',
+      question: 'К какому классу относится фермент, катализирующий конечную реакцию распада глюкозы в клетках при гипоксии (пируват → лактат)?',
+      options: [
+        {key:'а', text:'оксидоредуктаза'}, {key:'б', text:'трансфераза'},
+        {key:'в', text:'изомераза'}, {key:'г', text:'гидролаза'}, {key:'д', text:'лиаза'}
+      ], correct: ['а'] }
+  ];
+
+  var multiplePool = [
+    { id: 59, type: 'multiple',
+      question: 'Активный центр фермента:',
+      options: [
+        {key:'а', text:'формируется из радикалов аминокислот, сближенных на уровне третичной структуры'},
+        {key:'б', text:'специфично связывает субстрат'},
+        {key:'в', text:'образует ковалентные связи с молекулой субстрата'},
+        {key:'г', text:'всегда содержит протестическую группу'},
+        {key:'д', text:'катализирует химическое превращение субстрата'}
+      ], correct: ['а','б','д'] },
+    { id: 60, type: 'multiple',
+      question: 'Активный центр фермента:',
+      options: [
+        {key:'а', text:'непосредственно взаимодействует с субстратом и участвует в катализе'},
+        {key:'б', text:'комплементарен субстрату'},
+        {key:'в', text:'всегда соединяется только с одним-единственным субстратом'},
+        {key:'г', text:'составляет относительно небольшую часть молекулы фермента'},
+        {key:'д', text:'состоит только из полярных аминокислот'}
+      ], correct: ['а','б','г'] },
+    { id: 61, type: 'multiple',
+      question: 'Ферменты, обладающие абсолютной субстратной специфичностью:',
+      options: [
+        {key:'а', text:'катализируют один тип реакции с несколькими сходными субстратами'},
+        {key:'б', text:'имеют конформацию активного центра, способную к небольшим изменениям'},
+        {key:'в', text:'катализируют превращение только одного-единственного субстрата'},
+        {key:'г', text:'связывают субстрат с активным центром комплементарно'},
+        {key:'д', text:'способны взаимодействовать со стереоизомерами субстрата'}
+      ], correct: ['в','г'] },
+    { id: 66, type: 'multiple',
+      question: 'Сериновые протеазы:',
+      options: [
+        {key:'а', text:'ускоряют гидролиз пептидных связей в белках'},
+        {key:'б', text:'вызывают денатурацию белков'},
+        {key:'в', text:'проявляют абсолютную специфичность к субстрату'},
+        {key:'г', text:'представлены трипсином, химотрипсином, эластазой'},
+        {key:'д', text:'проявляют групповую специфичность к субстрату'}
+      ], correct: ['а','г','д'] },
+    { id: 69, type: 'multiple',
+      question: 'Km:',
+      options: [
+        {key:'а', text:'параметр кинетики ферментативных реакций'},
+        {key:'б', text:'может иметь разное значение для изоферментов'},
+        {key:'в', text:'концентрация субстрата, при которой достигается половина максимальной скорости (Vmax) ферментативной реакции'},
+        {key:'г', text:'коэффициент для расчета Vmax'},
+        {key:'д', text:'сродство фермента к субстрату прямо пропорционально Km'}
+      ], correct: ['а','б','в'] },
+    { id: 71, type: 'multiple',
+      question: 'Апофермент:',
+      options: [
+        {key:'а', text:'органическое соединение, в состав которого входит производное витамина'},
+        {key:'б', text:'белковая часть холофермента'},
+        {key:'в', text:'обладает каталитической активностью'},
+        {key:'г', text:'имеет участок, комплементарный субстрату'},
+        {key:'д', text:'образует комплекс с коферментом'}
+      ], correct: ['б','г','д'] },
+    { id: 73, type: 'multiple',
+      question: 'Кофермент:',
+      options: [
+        {key:'а', text:'небелковая часть молекулы холофермента'},
+        {key:'б', text:'белковая часть фермента'},
+        {key:'в', text:'производное витамина'},
+        {key:'г', text:'находится в активном центре фермента'},
+        {key:'д', text:'участвует в превращении субстрата в продукт'}
+      ], correct: ['а','в','г','д'] },
+    { id: 74, type: 'multiple',
+      question: 'Кофермент пиридоксальфосфат участвует в реакциях:',
+      options: [
+        {key:'а', text:'карбоксилирования'},
+        {key:'б', text:'ацилирования'},
+        {key:'в', text:'трансминирования'},
+        {key:'г', text:'окислительно-восстановительных'},
+        {key:'д', text:'декарбоксилирования'}
+      ], correct: ['в','д'] },
+    { id: 80, type: 'multiple',
+      question: 'В состав активного центра дегидрогеназ могут входить коферменты:',
+      options: [
+        {key:'а', text:'биотин'},
+        {key:'б', text:'пиридоксальфосфат'},
+        {key:'в', text:'NAD⁺'},
+        {key:'г', text:'ТДФ'},
+        {key:'д', text:'FAD'}
+      ], correct: ['в','д'] }
+  ];
+
+  var matchingPool = [
+    { id: 113, type: 'matching',
+      question: 'Установите соответствие между видами специфичности и их характеристиками:',
+      left: [
+        {key:'1', text:'Абсолютная субстратная специфичность'},
+        {key:'2', text:'Относительная субстратная специфичность'},
+        {key:'3', text:'Каталитическая специфичность'}
+      ],
+      right: [
+        {key:'а', text:'катализирует превращение субстрата по одному из путей превращения'},
+        {key:'б', text:'взаимодействует только с одним субстратом'},
+        {key:'в', text:'катализирует несколько разных превращений одного субстрата'},
+        {key:'г', text:'может взаимодействовать с группой подобных субстратов'},
+        {key:'д', text:'взаимодействует только с одним из стереоизомеров для данного вещества'}
+      ],
+      correct: {'1':'б','2':'г','3':'а'} },
+    { id: 119, type: 'matching',
+      question: 'Установите соответствие между классом фермента и подклассом:',
+      left: [
+        {key:'1', text:'Оксидоредуктазы'},
+        {key:'2', text:'Лигазы'},
+        {key:'3', text:'Трансферазы'}
+      ],
+      right: [
+        {key:'а', text:'киназы'},
+        {key:'б', text:'дегидрогеназы'},
+        {key:'в', text:'гидроксилазы'},
+        {key:'г', text:'фосфатазы'},
+        {key:'д', text:'карбоксилазы'}
+      ],
+      correct: {'1':'б','2':'д','3':'а'} },
+    { id: 120, type: 'matching',
+      question: 'Установите соответствие между формулой активности фермента и её названием:',
+      left: [
+        {key:'1', text:'1 мкмоль превращенного субстрата / 1 мин'},
+        {key:'2', text:'1 моль превращенного субстрата / 1 с'},
+        {key:'3', text:'Количество превращенного субстрата (мкмоль) / [время (мин) × количество белка (мг)]'}
+      ],
+      right: [
+        {key:'а', text:'катал'},
+        {key:'б', text:'единица активности (МЕ)'},
+        {key:'в', text:'удельная активность'},
+        {key:'г', text:'число каталов'},
+        {key:'д', text:'число единиц активности'}
+      ],
+      correct: {'1':'б','2':'а','3':'в'} }
+  ];
+
+  // -------- Выборка 15 вопросов --------
+  function pickRandom(arr, n) {
+    var copy = arr.slice(), out = [];
+    for (var i = 0; i < n && copy.length > 0; i++) {
+      var idx = Math.floor(Math.random() * copy.length);
+      out.push(copy.splice(idx, 1)[0]);
+    }
+    return out;
+  }
+
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  // Запуск после полной загрузки DOM
+  document.addEventListener('DOMContentLoaded', function () {
+    try {
+      var form = document.getElementById('quizForm');
+      var progressFill = document.getElementById('progressFill');
+      var progressLabel = document.getElementById('progressLabel');
+      var submitBtn = document.getElementById('submitBtn');
+      var resultArea = document.getElementById('resultArea');
+      var errorBox = document.getElementById('errorBox');
+
+      var selectedSingles = pickRandom(singlePool, 8);
+      var selectedMultiples = pickRandom(multiplePool, 4);
+      var selectedMatchings = pickRandom(matchingPool, 3);
+      var questions = shuffle(selectedSingles.concat(selectedMultiples, selectedMatchings));
+
+      // -------- Рендер --------
+      function renderQuestion(q, index) {
+        var card = document.createElement('div');
+        card.className = 'question-card';
+        card.setAttribute('data-qid', q.id);
+        card.setAttribute('data-qtype', q.type);
+
+        var header = document.createElement('div');
+        header.className = 'q-header';
+
+        var num = document.createElement('div');
+        num.className = 'q-num';
+        num.textContent = 'Вопрос ' + (index + 1);
+
+        var textWrap = document.createElement('div');
+        textWrap.className = 'q-text';
+        textWrap.appendChild(document.createTextNode(q.question));
+        var hint = document.createElement('span');
+        hint.className = 'q-type-hint';
+        if (q.type === 'single') hint.textContent = 'Выберите один вариант ответа';
+        else if (q.type === 'multiple') hint.textContent = 'Выберите все правильные варианты';
+        else hint.textContent = 'Нажмите на плашку внизу, затем на поле справа';
+        textWrap.appendChild(hint);
+
+        header.appendChild(num);
+        header.appendChild(textWrap);
+        card.appendChild(header);
+
+        if (q.type === 'single' || q.type === 'multiple') {
+          var opts = document.createElement('div');
+          opts.className = 'options';
+          var inputType = (q.type === 'single') ? 'radio' : 'checkbox';
+          q.options.forEach(function (opt) {
+            var label = document.createElement('label');
+            label.className = 'option';
+            label.setAttribute('data-key', opt.key);
+
+            var input = document.createElement('input');
+            input.type = inputType;
+            input.name = 'q_' + q.id + '_' + index;
+            input.value = opt.key;
+            label.appendChild(input);
+
+            var keySpan = document.createElement('span');
+            keySpan.className = 'opt-key';
+            keySpan.textContent = opt.key + ')';
+            label.appendChild(keySpan);
+
+            var txt = document.createElement('span');
+            txt.textContent = opt.text;
+            label.appendChild(txt);
+
+            if (q.type === 'single') {
+              input.addEventListener('change', function () {
+                var siblings = opts.querySelectorAll('.option');
+                for (var i = 0; i < siblings.length; i++) siblings[i].classList.remove('selected');
+                if (input.checked) label.classList.add('selected');
+                updateProgress();
+              });
+            } else {
+              input.addEventListener('change', function () {
+                if (input.checked) label.classList.add('selected');
+                else label.classList.remove('selected');
+                updateProgress();
+              });
+            }
+            opts.appendChild(label);
+          });
+          card.appendChild(opts);
+        } else if (q.type === 'matching') {
+          var matching = document.createElement('div');
+          matching.className = 'matching';
+
+          q.left.forEach(function (leftItem) {
+            var row = document.createElement('div');
+            row.className = 'match-row';
+
+            var leftDiv = document.createElement('div');
+            leftDiv.className = 'match-left';
+            var k = document.createElement('span');
+            k.className = 'key';
+            k.textContent = leftItem.key + '.';
+            leftDiv.appendChild(k);
+            leftDiv.appendChild(document.createTextNode(' ' + leftItem.text));
+            row.appendChild(leftDiv);
+
+            var zone = document.createElement('div');
+            zone.className = 'drop-zone';
+            zone.setAttribute('data-left', leftItem.key);
+            zone.addEventListener('click', function () { onZoneClick(card, zone); });
+            row.appendChild(zone);
+
+            matching.appendChild(row);
+          });
+          card.appendChild(matching);
+
+          var pool = document.createElement('div');
+          pool.className = 'chip-pool';
+          q.right.forEach(function (rightItem) {
+            var chip = document.createElement('div');
+            chip.className = 'chip';
+            chip.setAttribute('data-key', rightItem.key);
+
+            var ck = document.createElement('span');
+            ck.className = 'chip-key';
+            ck.textContent = rightItem.key + ')';
+            chip.appendChild(ck);
+
+            var ct = document.createElement('span');
+            ct.className = 'chip-text';
+            ct.textContent = rightItem.text;
+            chip.appendChild(ct);
+
+            chip.addEventListener('click', function () { onChipClick(card, chip); });
+            pool.appendChild(chip);
+          });
+          card.appendChild(pool);
+        }
+
+        form.appendChild(card);
+      }
+
+      // -------- Логика tap-режима --------
+      var selectedChip = null;
+
+      function clearArmedZones(card) {
+        var zones = card.querySelectorAll('.drop-zone');
+        for (var i = 0; i < zones.length; i++) zones[i].classList.remove('armed');
+      }
+
+      function onChipClick(card, chip) {
+        // Если чип внутри зоны — возвращаем его в пул
+        var parentZone = chip.parentNode;
+        if (parentZone && parentZone.classList && parentZone.classList.contains('drop-zone')) {
+          var pool = card.querySelector('.chip-pool');
+          pool.appendChild(chip);
+          parentZone.classList.remove('filled');
+          clearArmedZones(card);
+          selectedChip = null;
+          updateProgress();
+          return;
+        }
+        // Иначе выделяем чип
+        var chips = card.querySelectorAll('.chip');
+        for (var i = 0; i < chips.length; i++) chips[i].classList.remove('selected-chip');
+        if (selectedChip === chip) {
+          selectedChip = null;
+        } else {
+          selectedChip = chip;
+          chip.classList.add('selected-chip');
+        }
+        // Подсвечиваем свободные зоны
+        clearArmedZones(card);
+        if (selectedChip) {
+          var zones = card.querySelectorAll('.drop-zone');
+          for (var j = 0; j < zones.length; j++) {
+            if (!zones[j].querySelector('.chip')) zones[j].classList.add('armed');
+          }
+        }
+      }
+
+      function onZoneClick(card, zone) {
+        var existingChip = zone.querySelector('.chip');
+        // Если есть выделенный чип — кладём его сюда (вытесняя старый)
+        if (selectedChip) {
+          var pool = card.querySelector('.chip-pool');
+          if (existingChip) pool.appendChild(existingChip);
+          zone.appendChild(selectedChip);
+          selectedChip.classList.remove('selected-chip');
+          selectedChip = null;
+          zone.classList.add('filled');
+          clearArmedZones(card);
+          updateProgress();
+          return;
+        }
+        // Если нет выделенного — если в зоне есть чип, вернём его в пул
+        if (existingChip) {
+          var p = card.querySelector('.chip-pool');
+          p.appendChild(existingChip);
+          zone.classList.remove('filled');
+          updateProgress();
+        }
+      }
+
+      // -------- Прогресс --------
+      function isQuestionAnswered(card) {
+        var type = card.getAttribute('data-qtype');
+        if (type === 'single' || type === 'multiple') {
+          return !!card.querySelector('input:checked');
+        } else {
+          var zones = card.querySelectorAll('.drop-zone');
+          for (var i = 0; i < zones.length; i++) {
+            if (!zones[i].querySelector('.chip')) return false;
+          }
+          return true;
+        }
+      }
+
+      function updateProgress() {
+        var cards = form.querySelectorAll('.question-card');
+        var answered = 0;
+        for (var i = 0; i < cards.length; i++) if (isQuestionAnswered(cards[i])) answered++;
+        var total = cards.length || 1;
+        progressFill.style.width = (answered / total * 100) + '%';
+        progressLabel.textContent = answered + ' / ' + total;
+      }
+
+      // -------- Проверка --------
+      function getCorrectText(q) {
+        if (q.type === 'single' || q.type === 'multiple') return q.correct.join(', ');
+        return Object.keys(q.correct).map(function (k) { return k + '–' + q.correct[k]; }).join('; ');
+      }
+
+      function getUserAnswerText(card, q) {
+        if (q.type === 'single' || q.type === 'multiple') {
+          var checked = card.querySelectorAll('input:checked');
+          var vals = [];
+          for (var i = 0; i < checked.length; i++) vals.push(checked[i].value);
+          return vals.length ? vals.sort().join(', ') : '—';
+        } else {
+          var pairs = [], any = false;
+          var zones = card.querySelectorAll('.drop-zone');
+          for (var j = 0; j < zones.length; j++) {
+            var chip = zones[j].querySelector('.chip');
+            if (chip) { pairs.push(zones[j].getAttribute('data-left') + '–' + chip.getAttribute('data-key')); any = true; }
+            else pairs.push(zones[j].getAttribute('data-left') + '–?');
+          }
+          return any ? pairs.join('; ') : '—';
+        }
+      }
+
+      function checkQuestion(card, q) {
+        if (q.type === 'single' || q.type === 'multiple') {
+          var checked = card.querySelectorAll('input:checked');
+          var vals = [];
+          for (var i = 0; i < checked.length; i++) vals.push(checked[i].value);
+          vals.sort();
+          var correctSorted = q.correct.slice().sort();
+          if (vals.length !== correctSorted.length) return false;
+          for (var j = 0; j < vals.length; j++) if (vals[j] !== correctSorted[j]) return false;
+          return true;
+        } else {
+          var keys = Object.keys(q.correct);
+          for (var m = 0; m < keys.length; m++) {
+            var leftKey = keys[m];
+            var zone = card.querySelector('.drop-zone[data-left="' + leftKey + '"]');
+            var chip = zone ? zone.querySelector('.chip') : null;
+            var chipKey = chip ? chip.getAttribute('data-key') : null;
+            if (chipKey !== q.correct[leftKey]) return false;
+          }
+          return true;
+        }
+      }
+
+      function markQuestion(card, q, isCorrect) {
+        card.classList.add(isCorrect ? 'correct-card' : 'wrong-card');
+        if (q.type === 'single' || q.type === 'multiple') {
+          var opts = card.querySelectorAll('.option');
+          for (var i = 0; i < opts.length; i++) {
+            var label = opts[i];
+            var key = label.getAttribute('data-key');
+            var input = label.querySelector('input');
+            if (q.correct.indexOf(key) !== -1) label.classList.add('correct-opt');
+            if (input.checked && q.correct.indexOf(key) === -1) label.classList.add('wrong-opt');
+          }
+        } else {
+          var zones = card.querySelectorAll('.drop-zone');
+          for (var j = 0; j < zones.length; j++) {
+            var zone = zones[j];
+            var leftKey = zone.getAttribute('data-left');
+            var correctKey = q.correct[leftKey];
+            var chip = zone.querySelector('.chip');
+            var chipKey = chip ? chip.getAttribute('data-key') : null;
+            if (chipKey !== correctKey) {
+              zone.style.borderColor = 'var(--wrong)';
+              zone.style.background = '#fdeaea';
+            } else {
+              zone.style.borderColor = 'var(--correct)';
+              zone.style.background = '#e9f7ef';
+            }
+          }
+        }
+      }
+
+      // -------- Отрисовка --------
+      for (var i = 0; i < questions.length; i++) renderQuestion(questions[i], i);
+      updateProgress();
+
+      // -------- Кнопка --------
+      submitBtn.addEventListener('click', function () {
+        var cards = form.querySelectorAll('.question-card');
+        var correctCount = 0, wrongCount = 0;
+        for (var i = 0; i < cards.length; i++) {
+          var card = cards[i];
+          var q = null;
+          for (var k = 0; k < questions.length; k++) {
+            if (String(questions[k].id) === String(card.getAttribute('data-qid'))) { q = questions[k]; break; }
+          }
+          if (!q) continue;
+          var isCorrect = checkQuestion(card, q);
+          if (isCorrect) correctCount++; else wrongCount++;
+          markQuestion(card, q, isCorrect);
+        }
+        var total = cards.length || 1;
+        var score = Math.round(((correctCount - wrongCount) / total) * 100);
+        var scoreClass = score >= 50 ? 'score-good' : (score >= 0 ? 'score-mid' : 'score-bad');
+
+        var html = '<div class="result-section">';
+        html += '<div class="score-box ' + scoreClass + '">Итог: ' + score + ' баллов</div>';
+        html += '<p style="text-align:center;color:var(--muted);margin-top:-8px;font-size:13px;">Правильно: ' + correctCount + ' · Неправильно/без ответа: ' + wrongCount + '</p>';
+
+        for (var n = 0; n < cards.length; n++) {
+          var c = cards[n];
+          var qq = null;
+          for (var m = 0; m < questions.length; m++) {
+            if (String(questions[m].id) === String(c.getAttribute('data-qid'))) { qq = questions[m]; break; }
+          }
+          if (!qq) continue;
+          var ok = checkQuestion(c, qq);
+          var userAns = getUserAnswerText(c, qq);
+          var correctAns = getCorrectText(qq);
+
+          html += '<div class="result-item">';
+          html += '<div class="result-q">' + (n + 1) + '. ' + qq.question + '</div>';
+          html += '<div class="result-line"><span class="label">Ваш ответ:</span> <span class="' + (ok ? 'result-correct' : 'result-wrong') + '">' + userAns + '</span></div>';
+          if (!ok) {
+            html += '<div class="result-line"><span class="label">Правильный ответ:</span> <span class="result-correct">' + correctAns + '</span></div>';
+          } else {
+            html += '<div class="result-line"><span class="result-ok">✓ Верно</span></div>';
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+        resultArea.innerHTML = html;
+        if (resultArea.scrollIntoView) resultArea.scrollIntoView({behavior: 'smooth', block: 'start'});
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Ответы проверены';
+      });
+
+    } catch (err) {
+      // Показываем ошибку, чтобы было видно, что JS упал
+      var eb = document.getElementById('errorBox');
+      if (eb) {
+        eb.style.display = 'block';
+        eb.textContent = 'Ошибка при запуске теста: ' + (err && err.message ? err.message : err);
+      }
+      // Пробуем вывести в консоль
+      if (window.console && console.error) console.error(err);
+    }
+  });
+})();
+</script>
+</body>
+</html>
