@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тест: Ферменты (часть 2)</title>
+<style>
+  :root {
+    --bg: #f4f7fb; --card: #ffffff; --primary: #3b6ea5; --primary-dark: #2c527a;
+    --border: #d7e2ee; --text: #22303f; --muted: #6b7c8f;
+    --correct: #2e9e5b; --wrong: #d64545; --warn: #e0a800;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+         background: var(--bg); color: var(--text); line-height: 1.5; }
+  .container { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { text-align: center; margin-bottom: 24px; }
+  header h1 { font-size: 28px; margin: 0 0 8px; color: var(--primary-dark); }
+  header p { margin: 0; color: var(--muted); }
+  .progress-bar { position: sticky; top: 0; z-index: 10;
+    background: rgba(244, 247, 251, 0.95); backdrop-filter: blur(6px);
+    padding: 10px 0; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .progress-inner { max-width: 860px; margin: 0 auto; padding: 0 16px;
+    display: flex; align-items: center; gap: 12px; }
+  .progress-track { flex: 1; height: 8px; background: #e2eaf3; border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease; }
+  .progress-label { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .question-card { background: var(--card); border-radius: 12px; padding: 20px 22px; margin-bottom: 18px;
+    box-shadow: 0 2px 8px rgba(34, 48, 63, 0.06); border: 1px solid var(--border); }
+  .question-card.correct-card { border-left: 4px solid var(--correct); }
+  .question-card.wrong-card { border-left: 4px solid var(--wrong); }
+  .q-header { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; }
+  .q-num { background: var(--primary); color: #fff; font-weight: 700; font-size: 13px;
+    border-radius: 6px; padding: 2px 9px; flex-shrink: 0; margin-top: 2px; }
+  .q-text { font-weight: 600; font-size: 16px; }
+  .q-type-hint { font-size: 12px; color: var(--muted); font-weight: 400; display: block; margin-top: 2px; }
+  .options { display: flex; flex-direction: column; gap: 8px; }
+  .option { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px;
+    border-radius: 8px; border: 1px solid var(--border); cursor: pointer;
+    transition: background 0.15s, border-color 0.15s; user-select: none; }
+  .option:hover { background: #f0f5fb; }
+  .option input { margin-top: 3px; accent-color: var(--primary); flex-shrink: 0; }
+  .option.selected { border-color: var(--primary); background: #e8f1fa; }
+  .option.correct-opt { border-color: var(--correct); background: #e9f7ef; }
+  .option.wrong-opt { border-color: var(--wrong); background: #fdeaea; }
+  .opt-key { font-weight: 700; color: var(--primary-dark); flex-shrink: 0; }
+  .matching { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .match-row { display: flex; gap: 10px; align-items: center; background: #f7fafd;
+    border-radius: 8px; padding: 8px 10px; border: 1px solid var(--border); }
+  .match-left { flex: 1; font-size: 14px; }
+  .match-left .key { font-weight: 700; color: var(--primary-dark); margin-right: 4px; }
+  .drop-zone { width: 74px; min-height: 42px; border: 2px dashed #b9cde0; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; background: #fff;
+    transition: border-color 0.15s, background 0.15s; flex-shrink: 0; }
+  .drop-zone.drag-over { border-color: var(--primary); background: #eaf2fb; }
+  .drop-zone.filled { border-style: solid; border-color: var(--primary); }
+  .chip-pool { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px;
+    background: #f0f5fb; border-radius: 8px; border: 1px dashed #c4d6e7; min-height: 52px; }
+  .chip-pool.drag-over { background: #e2eefb; }
+  .chip { background: #fff; border: 1px solid #b9cde0; border-radius: 8px; padding: 6px 10px;
+    font-size: 13px; cursor: grab; display: flex; gap: 6px; align-items: flex-start;
+    max-width: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .chip:active { cursor: grabbing; }
+  .chip.dragging { opacity: 0.4; }
+  .chip .chip-key { font-weight: 700; color: var(--primary-dark); }
+  .drop-zone .chip { margin: 0; padding: 4px 8px; font-size: 13px; }
+  .drop-zone .chip .chip-text { display: none; }
+  .btn { display: inline-block; background: var(--primary); color: #fff; border: none; border-radius: 10px;
+    padding: 14px 28px; font-size: 16px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s; width: 100%; }
+  .btn:hover { background: var(--primary-dark); }
+  .btn:disabled { background: #a9bdd2; cursor: not-allowed; }
+  .result-section { margin-top: 28px; background: var(--card); border-radius: 12px; padding: 22px;
+    border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(34, 48, 63, 0.06); }
+  .score-box { text-align: center; padding: 16px; border-radius: 10px; margin-bottom: 18px;
+    font-size: 22px; font-weight: 700; }
+  .score-good { background: #e9f7ef; color: var(--correct); }
+  .score-mid { background: #fdf6e3; color: var(--warn); }
+  .score-bad { background: #fdeaea; color: var(--wrong); }
+  .result-item { border-top: 1px solid var(--border); padding: 14px 0; }
+  .result-item:first-child { border-top: none; }
+  .result-q { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+  .result-line { font-size: 14px; margin: 3px 0; }
+  .result-line .label { color: var(--muted); }
+  .result-correct { color: var(--correct); font-weight: 600; }
+  .result-wrong { color: var(--wrong); font-weight: 600; }
+  .result-ok { color: var(--correct); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar">
+  <div class="progress-inner">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">0 / 15</div>
+  </div>
+</div>
+
+<div class="container">
+  <header>
+    <h1>Тест: Ферменты (часть 2)</h1>
+    <p>15 случайных вопросов · один или несколько ответов · соответствия</p>
+  </header>
+
+  <form id="quizForm"></form>
+
+  <div id="submitArea" style="margin-top: 8px;">
+    <button type="button" class="btn" id="submitBtn">Проверить ответы</button>
+  </div>
+
+  <div id="resultArea"></div>
+</div>
+
+<script>
+/* ==================== БАНК ВОПРОСОВ ==================== */
+
+const singlePool = [
+  {
+    id: 25, type: 'single',
+    question: 'Конкурентные ингибиторы:',
+    options: [
+      {key: 'а', text: 'образуют ковалентные связи с активным центром фермента'},
+      {key: 'б', text: 'взаимодействуют с аллостерическим центром'},
+      {key: 'в', text: 'взаимодействуют с активным центром фермента, образуя слабые связи'},
+      {key: 'г', text: 'уменьшают Км'},
+      {key: 'д', text: 'уменьшают Vmax'}
+    ],
+    correct: ['в']
+  },
+  {
+    id: 26, type: 'single',
+    question: 'Необратимые ингибиторы:',
+    options: [
+      {key: 'а', text: 'структурные аналоги субстрата'},
+      {key: 'б', text: 'образуют с ферментом ковалентные связи'},
+      {key: 'в', text: 'образуют с ферментом слабые связи'},
+      {key: 'г', text: 'взаимодействуют с регуляторным центром'},
+      {key: 'д', text: 'снижают ингибирующий эффект при увеличении концентрации субстрата'}
+    ],
+    correct: ['б']
+  },
+  {
+    id: 27, type: 'single',
+    question: 'Ацетилсалициловая кислота по механизму действия:',
+    options: [
+      {key: 'а', text: 'обратимый ингибитор'},
+      {key: 'б', text: 'необратимый ингибитор'},
+      {key: 'в', text: 'структурный аналог субстрата'},
+      {key: 'г', text: 'вызывает конкурентное ингибирование активности фермента'},
+      {key: 'д', text: 'относится к антиметаболитам'}
+    ],
+    correct: ['б']
+  },
+  {
+    id: 28, type: 'single',
+    question: 'Конкурентные ингибиторы ферментов изменяют:',
+    options: [
+      {key: 'а', text: 'Vmax катализируемой реакции'},
+      {key: 'б', text: 'Км реакции'},
+      {key: 'в', text: 'Vmax и Км реакции'},
+      {key: 'г', text: 'специфичность к субстрату'},
+      {key: 'д', text: 'первичную структуру фермента'}
+    ],
+    correct: ['б']
+  },
+  {
+    id: 29, type: 'single',
+    question: 'Лекарственный препарат неостигмина метилсульфат (прозерин):',
+    options: [
+      {key: 'а', text: 'увеличивает активность АХЭ'},
+      {key: 'б', text: 'связывается в аллостерическом центре фермента'},
+      {key: 'в', text: 'образует с ферментом ковалентную связь'},
+      {key: 'г', text: 'ингибирует ферменты с остатком серина в активном центре'},
+      {key: 'д', text: 'является обратимым ингибитором'}
+    ],
+    correct: ['д']
+  },
+  {
+    id: 30, type: 'single',
+    question: 'Сульфаниламидные препараты по структуре являются аналогами:',
+    options: [
+      {key: 'а', text: 'глутаминовой кислоты'},
+      {key: 'б', text: 'ацетилхолина'},
+      {key: 'в', text: 'ЦАМФ'},
+      {key: 'г', text: 'фолиевой кислоты'},
+      {key: 'д', text: 'ПАБК'}
+    ],
+    correct: ['д']
+  },
+  {
+    id: 32, type: 'single',
+    question: 'ДФФ:',
+    options: [
+      {key: 'а', text: 'конкурентный ингибитор АХЭ'},
+      {key: 'б', text: 'структурный аналог субстрата протеаз'},
+      {key: 'в', text: 'лекарство, используемое для лечения глаукомы'},
+      {key: 'г', text: 'специфический необратимый ингибитор сериновых ферментов'},
+      {key: 'д', text: 'обратимо связывается с ОН-группой серина в активном центре ферментов'}
+    ],
+    correct: ['г']
+  },
+  {
+    id: 34, type: 'single',
+    question: 'Апротинин:',
+    options: [
+      {key: 'а', text: 'конкурентный ингибитор трипсиногена'},
+      {key: 'б', text: 'специфический необратимый ингибитор трипсина'},
+      {key: 'в', text: 'структурный аналог ацетилхолина'},
+      {key: 'г', text: 'используется для лечения острого панкреатита'},
+      {key: 'д', text: 'фермент, активатор трипсиногена'}
+    ],
+    correct: ['г']
+  },
+  {
+    id: 35, type: 'single',
+    question: 'По механизму частичного протеолиза активируется фермент:',
+    options: [
+      {key: 'а', text: 'ЛДГ'},
+      {key: 'б', text: 'пепсин'},
+      {key: 'в', text: 'КК'},
+      {key: 'г', text: 'аспарагиназа'},
+      {key: 'д', text: 'щелочная фосфатаза'}
+    ],
+    correct: ['б']
+  },
+  {
+    id: 37, type: 'single',
+    question: 'Пример необратимой регуляции активности ферментов:',
+    options: [
+      {key: 'а', text: 'фосфорилирование под действием протеинкиназ'},
+      {key: 'б', text: 'аллостерическая регуляция'},
+      {key: 'в', text: 'дефосфорилирование под действием протеинфосфатаз'},
+      {key: 'г', text: 'присоединение к ферменту белка-регулятора'},
+      {key: 'д', text: 'частичный протеолиз ферментов'}
+    ],
+    correct: ['д']
+  },
+  {
+    id: 41, type: 'single',
+    question: 'Протеинкиназы:',
+    options: [
+      {key: 'а', text: 'катализируют реакцию фосфорилирования белков'},
+      {key: 'б', text: 'катализируют реакцию дефосфорилирования белков'},
+      {key: 'в', text: 'аллостерические ферменты'},
+      {key: 'г', text: 'относятся к классу ферментов лигаз'},
+      {key: 'д', text: 'относятся к классу ферментов гидролаз'}
+    ],
+    correct: ['а']
+  },
+  {
+    id: 42, type: 'single',
+    question: 'Для увеличения концентрации цАМФ можно использовать:',
+    options: [
+      {key: 'а', text: 'ингибиторы фосфодиэстеразы'},
+      {key: 'б', text: 'ингибиторы аденилатциклазы'},
+      {key: 'в', text: 'ингибиторы протеинкиназы А'},
+      {key: 'г', text: 'активаторы фосфодиэстеразы'},
+      {key: 'д', text: 'активаторы протеинфосфатазы'}
+    ],
+    correct: ['а']
+  },
+  {
+    id: 43, type: 'single',
+    question: 'Концентрация цАМФ в клетке:',
+    options: [
+      {key: 'а', text: 'снижается при действии на клетку теофиллина'},
+      {key: 'б', text: 'уменьшается при активации аденилатциклазы'},
+      {key: 'в', text: 'увеличивается при активации фосфодиэстеразы'},
+      {key: 'г', text: 'увеличивается при действии на клетку кофеина'},
+      {key: 'д', text: 'уменьшается при активации протеинкиназы А'}
+    ],
+    correct: ['г']
+  },
+  {
+    id: 44, type: 'single',
+    question: 'Фермент аденилатциклаза:',
+    options: [
+      {key: 'а', text: 'активирует фосфодиэстеразу'},
+      {key: 'б', text: 'не влияет на концентрацию цАМФ в клетке'},
+      {key: 'в', text: 'катализирует образование цАМФ'},
+      {key: 'г', text: 'вызывает гидролиз цАМФ'},
+      {key: 'д', text: 'ингибируется под действием протеинкиназы А'}
+    ],
+    correct: ['в']
+  },
+  {
+    id: 47, type: 'single',
+    question: 'По механизму фосфорилирования-дефосфорилирования регулируется фермент:',
+    options: [
+      {key: 'а', text: 'аденилатциклаза'},
+      {key: 'б', text: 'пепсин'},
+      {key: 'в', text: 'КК'},
+      {key: 'г', text: 'гликогенфосфорилаза'},
+      {key: 'д', text: 'аспарагиназа'}
+    ],
+    correct: ['г']
+  },
+  {
+    id: 48, type: 'single',
+    question: 'Аллостерической регуляции подвергается фермент:',
+    options: [
+      {key: 'а', text: 'аденилатциклаза'},
+      {key: 'б', text: 'протеинкиназа А'},
+      {key: 'в', text: 'фосфофруктокиназа'},
+      {key: 'г', text: 'уреаза'},
+      {key: 'д', text: 'аспарагиназа'}
+    ],
+    correct: ['в']
+  },
+  {
+    id: 50, type: 'single',
+    question: 'Для диагностики рака предстательной железы в крови определяют активность фермента:',
+    options: [
+      {key: 'а', text: 'уреазы'},
+      {key: 'б', text: 'липазы'},
+      {key: 'в', text: 'ЛДГ'},
+      {key: 'г', text: 'сукцинатдегидрогеназы'},
+      {key: 'д', text: 'кислой фосфатазы'}
+    ],
+    correct: ['д']
+  },
+  {
+    id: 51, type: 'single',
+    question: 'Фермент гиалуронидаза используется в медицине для:',
+    options: [
+      {key: 'а', text: 'удаления токсинов'},
+      {key: 'б', text: 'лечения злокачественных образований'},
+      {key: 'в', text: 'рассасывания рубцов'},
+      {key: 'г', text: 'улучшения пищеварения'},
+      {key: 'д', text: 'предотвращения тромбообразования'}
+    ],
+    correct: ['в']
+  },
+  {
+    id: 53, type: 'single',
+    question: 'Фермент α-амилаза используется в энзимодиагностике заболевания:',
+    options: [
+      {key: 'а', text: 'сердца'},
+      {key: 'б', text: 'поджелудочной железы'},
+      {key: 'в', text: 'печени'},
+      {key: 'г', text: 'простаты'},
+      {key: 'д', text: 'мозга'}
+    ],
+    correct: ['б']
+  },
+  {
+    id: 54, type: 'single',
+    question: 'В первые сутки после инфаркта миокарда в крови больных больше всего возрастает активность фермента:',
+    options: [
+      {key: 'а', text: 'КК'},
+      {key: 'б', text: 'ЛДГ'},
+      {key: 'в', text: 'АЛТ'},
+      {key: 'г', text: 'АСТ'},
+      {key: 'д', text: 'щелочной фосфатазы'}
+    ],
+    correct: ['а']
+  },
+  {
+    id: 55, type: 'single',
+    question: 'Для лечения лейкозов используют фермент:',
+    options: [
+      {key: 'а', text: 'пепсин'},
+      {key: 'б', text: 'трипсин'},
+      {key: 'в', text: 'урокиназу'},
+      {key: 'г', text: 'аспарагиназу'},
+      {key: 'д', text: 'уреазу'}
+    ],
+    correct: ['г']
+  }
+];
+
+const multiplePool = [
+  {
+    id: 84, type: 'multiple',
+    question: 'Ацетилсалициловую кислоту используют в качестве лекарственного препарата, так как она:',
+    options: [
+      {key: 'а', text: 'ингибитор ЦОГ'},
+      {key: 'б', text: 'вызывает ацетилирование ОН-группы серина ЦОГ'},
+      {key: 'в', text: 'взаимодействует с аллостерическим центром'},
+      {key: 'г', text: 'конкурентный ингибитор'},
+      {key: 'д', text: 'необратимый ингибитор'}
+    ],
+    correct: ['а', 'б', 'д']
+  },
+  {
+    id: 88, type: 'multiple',
+    question: 'Сульфаниламидные препараты:',
+    options: [
+      {key: 'а', text: 'снижают количество фолиевой кислоты в эукариотических клетках'},
+      {key: 'б', text: 'антиметаболиты'},
+      {key: 'в', text: 'структурные аналоги ПАБК'},
+      {key: 'г', text: 'влияют на метаболизм эукариотических клеток'},
+      {key: 'д', text: 'снижают количество фолиевой кислоты в бактериях'}
+    ],
+    correct: ['б', 'в', 'д']
+  },
+  {
+    id: 91, type: 'multiple',
+    question: 'Активность ферментов в клетке регулируется с участием следующих механизмов:',
+    options: [
+      {key: 'а', text: 'аллостерической регуляции'},
+      {key: 'б', text: 'частичного протеолиза'},
+      {key: 'в', text: 'фосфорилирования/дефосфорилирования'},
+      {key: 'г', text: 'необратимого ингибирования с помощью специфических ингибиторов'},
+      {key: 'д', text: 'белок-белкового взаимодействия'}
+    ],
+    correct: ['а', 'б', 'в', 'д']
+  },
+  {
+    id: 95, type: 'multiple',
+    question: 'Аллостерические ферменты:',
+    options: [
+      {key: 'а', text: 'катализируют скорость-лимитирующие реакции'},
+      {key: 'б', text: 'расположены в начале метаболического пути'},
+      {key: 'в', text: 'редко встречаются в клетке'},
+      {key: 'г', text: 'катализируют необратимые реакции'},
+      {key: 'д', text: 'катализируют реакции в месте разветвления метаболического пути'}
+    ],
+    correct: ['а', 'б', 'д']
+  },
+  {
+    id: 103, type: 'multiple',
+    question: 'Фермент аспарагиназа:',
+    options: [
+      {key: 'а', text: 'уменьшает концентрацию аспарагина в крови'},
+      {key: 'б', text: 'увеличивает концентрацию аспарагина в крови'},
+      {key: 'в', text: 'уменьшает синтез белков во всех клетках организма'},
+      {key: 'г', text: 'уменьшает синтез белков в лейкозных клетках'},
+      {key: 'д', text: 'уменьшает концентрацию аспарагиновой кислоты в крови'}
+    ],
+    correct: ['а', 'г']
+  },
+  {
+    id: 104, type: 'multiple',
+    question: 'Фермент ЛДГ:',
+    options: [
+      {key: 'а', text: 'олигомерный белок'},
+      {key: 'б', text: 'используется для диагностики инфаркта миокарда'},
+      {key: 'в', text: 'используется для диагностики гепатита'},
+      {key: 'г', text: 'в разных тканях находится в форме изоферментов'},
+      {key: 'д', text: 'относится к классу оксидоредуктаз'}
+    ],
+    correct: ['а', 'б', 'в', 'г', 'д']
+  },
+  {
+    id: 107, type: 'multiple',
+    question: 'Использование протеолитических ферментов в медицине возможно:',
+    options: [
+      {key: 'а', text: 'в лечении злокачественных заболеваний'},
+      {key: 'б', text: 'в аппаратах «искусственная почка» для разрушения мочевины'},
+      {key: 'в', text: 'для очистки ран'},
+      {key: 'г', text: 'для рассасывания рубцов'},
+      {key: 'д', text: 'в качестве заместительной терапии при нарушении пищеварения'}
+    ],
+    correct: ['в', 'г', 'д']
+  },
+  {
+    id: 109, type: 'multiple',
+    question: 'Для энзимодиагностики инфаркта миокарда используют ферменты:',
+    options: [
+      {key: 'а', text: 'сукцинатдегидрогеназу'},
+      {key: 'б', text: 'ЛДГ'},
+      {key: 'в', text: 'гиалуронидазу'},
+      {key: 'г', text: 'КК'},
+      {key: 'д', text: 'аминотрансферазы'}
+    ],
+    correct: ['б', 'г', 'д']
+  },
+  {
+    id: 110, type: 'multiple',
+    question: 'Принципы энзимодиагностики основаны на:',
+    options: [
+      {key: 'а', text: 'выходе ферментов в кровь при повреждении тканей'},
+      {key: 'б', text: 'органоспецифичности'},
+      {key: 'в', text: 'высокой стабильности ферментов'},
+      {key: 'г', text: 'преобладании определённых изоферментов в разных тканях'},
+      {key: 'д', text: 'низкой активности или полном отсутствии активности ферментов в норме в крови'}
+    ],
+    correct: ['а', 'б', 'г', 'д']
+  },
+  {
+    id: 111, type: 'multiple',
+    question: 'Наследственные энзимопатии связаны с такими изменениями первичной структуры ферментов, при которых может произойти:',
+    options: [
+      {key: 'а', text: 'нарушение сродства активного центра к субстрату'},
+      {key: 'б', text: 'увеличение активности фермента'},
+      {key: 'в', text: 'изменение концентрации метаболитов в клетке'},
+      {key: 'г', text: 'увеличение количества фермента в клетке'},
+      {key: 'д', text: 'уменьшение активности фермента'}
+    ],
+    correct: ['а', 'в', 'д']
+  }
+];
+
+const matchingPool = [
+  {
+    id: 123, type: 'matching',
+    question: 'Установите соответствие между лекарственным веществом и его свойством:',
+    left: [
+      {key: '1', text: 'Неостигмина метилсульфат (прозерин)'},
+      {key: '2', text: 'Теофиллин'},
+      {key: '3', text: 'Ацетилсалициловая кислота'}
+    ],
+    right: [
+      {key: 'а', text: 'структурный аналог ПАБК'},
+      {key: 'б', text: 'ингибитор фосфодиэстеразы'},
+      {key: 'в', text: 'ингибитор ксантиноксидазы'},
+      {key: 'г', text: 'структурный аналог ацетилхолина'},
+      {key: 'д', text: 'необратимый ингибитор'}
+    ],
+    correct: {'1': 'г', '2': 'б', '3': 'д'}
+  },
+  {
+    id: 124, type: 'matching',
+    question: 'Установите соответствие между механизмом ингибирования и свойством ингибитора:',
+    left: [
+      {key: '1', text: 'Конкурентный ингибитор'},
+      {key: '2', text: 'Неконкурентный ингибитор'},
+      {key: '3', text: 'Специфический необратимый ингибитор'}
+    ],
+    right: [
+      {key: 'а', text: 'структурный аналог субстрата'},
+      {key: 'б', text: 'взаимодействует с ОН-группами Сер активного центра'},
+      {key: 'в', text: 'структурный аналог продукта'},
+      {key: 'г', text: 'структурный аналог кофермента'},
+      {key: 'д', text: 'взаимодействует с ферментом в месте, отличном от активного'}
+    ],
+    correct: {'1': 'а', '2': 'д', '3': 'б'}
+  },
+  {
+    id: 125, type: 'matching',
+    question: 'Установите соответствие между лекарственным веществом и заболеванием, при котором оно применяется:',
+    left: [
+      {key: '1', text: 'Сульфаниламидные препараты'},
+      {key: '2', text: 'Аллопуринол'},
+      {key: '3', text: 'Апротинин'}
+    ],
+    right: [
+      {key: 'а', text: 'инфаркт миокарда'},
+      {key: 'б', text: 'подагра'},
+      {key: 'в', text: 'инфекционные (микробные) заболевания'},
+      {key: 'г', text: 'панкреатит'},
+      {key: 'д', text: 'гепатит'}
+    ],
+    correct: {'1': 'в', '2': 'б', '3': 'г'}
+  },
+  {
+    id: 126, type: 'matching',
+    question: 'Установите соответствие между лекарственным веществом и его свойством:',
+    left: [
+      {key: '1', text: 'Апротинин'},
+      {key: '2', text: 'Сульфаниламидные препараты'},
+      {key: '3', text: 'Ацетилсалициловая кислота'}
+    ],
+    right: [
+      {key: 'а', text: 'механизм действия связан с ацетилированием ОН-группы серина активного центра фермента'},
+      {key: 'б', text: 'структурный аналог ПАБК'},
+      {key: 'в', text: 'структурный аналог ацетилхолина'},
+      {key: 'г', text: 'структурный аналог природного ингибитора трипсина'},
+      {key: 'д', text: 'структурный аналог гипоксантина'}
+    ],
+    correct: {'1': 'г', '2': 'б', '3': 'а'}
+  },
+  {
+    id: 127, type: 'matching',
+    question: 'Установите соответствие между метаболитом клетки и особенностью его взаимодействия с ферментом:',
+    left: [
+      {key: '1', text: 'Субстрат'},
+      {key: '2', text: 'Продукт'},
+      {key: '3', text: 'Аллостерический эффектор'}
+    ],
+    right: [
+      {key: 'а', text: 'присоединяется к аллостерическому центру'},
+      {key: 'б', text: 'кофактор фермента'},
+      {key: 'в', text: 'высвобождается из активного центра'},
+      {key: 'г', text: 'претерпевает структурные изменения в ходе катализа'},
+      {key: 'д', text: 'вызывает диссоциацию фермента на субъединицы'}
+    ],
+    correct: {'1': 'г', '2': 'в', '3': 'а'}
+  },
+  {
+    id: 128, type: 'matching',
+    question: 'Установите соответствие между механизмом регуляции активности ферментов и его особенностью:',
+    left: [
+      {key: '1', text: 'Аллостерическая регуляция'},
+      {key: '2', text: 'Фосфорилирование/дефосфорилирование'},
+      {key: '3', text: 'Белок-белковые взаимодействия'}
+    ],
+    right: [
+      {key: 'а', text: 'взаимодействуют каталитический и регуляторный центры, локализованные в разных протомерах'},
+      {key: 'б', text: 'изменение первичной структуры фермента'},
+      {key: 'в', text: 'ингибирование необратимое'},
+      {key: 'г', text: 'вызвана активацией протеинкиназ и протеинфосфатаз'},
+      {key: 'д', text: 'сопровождается диссоциацией или ассоциацией белковых комплексов'}
+    ],
+    correct: {'1': 'а', '2': 'г', '3': 'д'}
+  },
+  {
+    id: 129, type: 'matching',
+    question: 'Установите соответствие между ферментом и заболеванием, для диагностики которого он используется:',
+    left: [
+      {key: '1', text: 'КК'},
+      {key: '2', text: 'Амилаза'},
+      {key: '3', text: 'Кислая фосфатаза'}
+    ],
+    right: [
+      {key: 'а', text: 'печени'},
+      {key: 'б', text: 'предстательной железы'},
+      {key: 'в', text: 'поджелудочной железы'},
+      {key: 'г', text: 'почек'},
+      {key: 'д', text: 'сердца'}
+    ],
+    correct: {'1': 'д', '2': 'в', '3': 'б'}
+  },
+  {
+    id: 130, type: 'matching',
+    question: 'Установите соответствие между ферментом и его применением в медицине:',
+    left: [
+      {key: '1', text: 'Гиалуронидаза'},
+      {key: '2', text: 'Нуклеаза'},
+      {key: '3', text: 'Стрептокиназа'}
+    ],
+    right: [
+      {key: 'а', text: 'рассасывание рубцов'},
+      {key: 'б', text: 'лечение гнойных ран'},
+      {key: 'в', text: 'лечение вирусных конъюнктивитов'},
+      {key: 'г', text: 'предотвращение тромбообразования'},
+      {key: 'д', text: 'лечение злокачественных образований'}
+    ],
+    correct: {'1': 'а', '2': 'в', '3': 'г'}
+  },
+  {
+    id: 131, type: 'matching',
+    question: 'Установите соответствие между ферментом и особенностью его регуляции:',
+    left: [
+      {key: '1', text: 'Протеинкиназа'},
+      {key: '2', text: 'Фосфопротеинфосфатаза'},
+      {key: '3', text: 'Аденилатциклаза'}
+    ],
+    right: [
+      {key: 'а', text: 'регулируется аллостерически'},
+      {key: 'б', text: 'катализирует фосфорилирование белков'},
+      {key: 'в', text: 'катализирует дефосфорилирование белков'},
+      {key: 'г', text: 'активируется в мембране после присоединения гормона к рецептору'},
+      {key: 'д', text: 'регулируется по механизму частичного протеолиза'}
+    ],
+    correct: {'1': 'б', '2': 'в', '3': 'г'}
+  },
+  {
+    id: 132, type: 'matching',
+    question: 'Установите соответствие между ферментом и веществом, которое он определяет как аналитический реактив:',
+    left: [
+      {key: '1', text: 'Липаза'},
+      {key: '2', text: 'Уреаза'},
+      {key: '3', text: 'Глюкозооксидаза'}
+    ],
+    right: [
+      {key: 'а', text: 'холестерол'},
+      {key: 'б', text: 'мочевина'},
+      {key: 'в', text: 'триацилглицерол'},
+      {key: 'г', text: 'глюкоза'},
+      {key: 'д', text: 'креатинин'}
+    ],
+    correct: {'1': 'в', '2': 'б', '3': 'г'}
+  },
+  {
+    id: 133, type: 'matching',
+    question: 'Установите соответствие между определяемым веществом крови и ферментом-реактивом:',
+    left: [
+      {key: '1', text: 'Холестерол'},
+      {key: '2', text: 'Глюкоза'},
+      {key: '3', text: 'Мочевина'}
+    ],
+    right: [
+      {key: 'а', text: 'уреаза'},
+      {key: 'б', text: 'ксантиноксидаза'},
+      {key: 'в', text: 'холестеролоксидаза'},
+      {key: 'г', text: 'глюкокиназа'},
+      {key: 'д', text: 'глюкозооксидаза'}
+    ],
+    correct: {'1': 'в', '2': 'д', '3': 'а'}
+  }
+];
+
+/* ==================== ВЫБОРКА 15 ВОПРОСОВ ==================== */
+
+function pickRandom(arr, n) {
+  const copy = arr.slice();
+  const out = [];
+  for (let i = 0; i < n && copy.length > 0; i++) {
+    const idx = Math.floor(Math.random() * copy.length);
+    out.push(copy.splice(idx, 1)[0]);
+  }
+  return out;
+}
+
+const selectedSingles = pickRandom(singlePool, 8);
+const selectedMultiples = pickRandom(multiplePool, 4);
+const selectedMatchings = pickRandom(matchingPool, 3);
+let questions = [...selectedSingles, ...selectedMultiples, ...selectedMatchings];
+questions = questions.sort(() => Math.random() - 0.5);
+
+/* ==================== РЕНДЕР ==================== */
+
+const form = document.getElementById('quizForm');
+const progressFill = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+const submitBtn = document.getElementById('submitBtn');
+const resultArea = document.getElementById('resultArea');
+
+function renderQuestion(q, index) {
+  const card = document.createElement('div');
+  card.className = 'question-card';
+  card.dataset.qid = q.id;
+  card.dataset.qtype = q.type;
+
+  const header = document.createElement('div');
+  header.className = 'q-header';
+
+  const num = document.createElement('div');
+  num.className = 'q-num';
+  num.textContent = 'Вопрос ' + (index + 1);
+
+  const textWrap = document.createElement('div');
+  textWrap.className = 'q-text';
+  textWrap.textContent = q.question;
+  const hint = document.createElement('span');
+  hint.className = 'q-type-hint';
+  if (q.type === 'single') hint.textContent = 'Выберите один вариант ответа';
+  else if (q.type === 'multiple') hint.textContent = 'Выберите все правильные варианты';
+  else hint.textContent = 'Перетащите подходящий вариант в поле справа';
+  textWrap.appendChild(hint);
+
+  header.appendChild(num);
+  header.appendChild(textWrap);
+  card.appendChild(header);
+
+  if (q.type === 'single' || q.type === 'multiple') {
+    const opts = document.createElement('div');
+    opts.className = 'options';
+    const inputType = q.type === 'single' ? 'radio' : 'checkbox';
+    q.options.forEach(opt => {
+      const label = document.createElement('label');
+      label.className = 'option';
+      label.dataset.key = opt.key;
+
+      const input = document.createElement('input');
+      input.type = inputType;
+      input.name = 'q_' + q.id + '_' + index;
+      input.value = opt.key;
+      if (q.type === 'single') {
+        input.addEventListener('change', () => {
+          opts.querySelectorAll('.option').forEach(l => l.classList.remove('selected'));
+          if (input.checked) label.classList.add('selected');
+          updateProgress();
+        });
+      } else {
+        input.addEventListener('change', () => {
+          label.classList.toggle('selected', input.checked);
+          updateProgress();
+        });
+      }
+      label.appendChild(input);
+
+      const keySpan = document.createElement('span');
+      keySpan.className = 'opt-key';
+      keySpan.textContent = opt.key + ')';
+      label.appendChild(keySpan);
+
+      const txt = document.createElement('span');
+      txt.textContent = opt.text;
+      label.appendChild(txt);
+
+      opts.appendChild(label);
+    });
+    card.appendChild(opts);
+  } else if (q.type === 'matching') {
+    const matching = document.createElement('div');
+    matching.className = 'matching';
+
+    q.left.forEach(leftItem => {
+      const row = document.createElement('div');
+      row.className = 'match-row';
+
+      const leftDiv = document.createElement('div');
+      leftDiv.className = 'match-left';
+      const k = document.createElement('span');
+      k.className = 'key';
+      k.textContent = leftItem.key + '.';
+      leftDiv.appendChild(k);
+      leftDiv.appendChild(document.createTextNode(' ' + leftItem.text));
+      row.appendChild(leftDiv);
+
+      const zone = document.createElement('div');
+      zone.className = 'drop-zone';
+      zone.dataset.left = leftItem.key;
+      row.appendChild(zone);
+
+      matching.appendChild(row);
+    });
+
+    card.appendChild(matching);
+
+    const pool = document.createElement('div');
+    pool.className = 'chip-pool';
+    q.right.forEach(rightItem => {
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.draggable = true;
+      chip.dataset.key = rightItem.key;
+
+      const ck = document.createElement('span');
+      ck.className = 'chip-key';
+      ck.textContent = rightItem.key + ')';
+      chip.appendChild(ck);
+
+      const ct = document.createElement('span');
+      ct.className = 'chip-text';
+      ct.textContent = rightItem.text;
+      chip.appendChild(ct);
+
+      pool.appendChild(chip);
+    });
+    card.appendChild(pool);
+  }
+
+  form.appendChild(card);
+  return card;
+}
+
+questions.forEach((q, i) => renderQuestion(q, i));
+
+/* ==================== DRAG & DROP ==================== */
+
+let draggedChip = null;
+
+function setupDragAndDrop(card) {
+  const pool = card.querySelector('.chip-pool');
+  const zones = card.querySelectorAll('.drop-zone');
+  const chips = card.querySelectorAll('.chip');
+
+  chips.forEach(chip => {
+    chip.addEventListener('dragstart', e => {
+      draggedChip = chip;
+      chip.classList.add('dragging');
+      try { e.dataTransfer.setData('text/plain', chip.dataset.key); } catch (err) {}
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    chip.addEventListener('dragend', () => {
+      chip.classList.remove('dragging');
+      draggedChip = null;
+      card.querySelectorAll('.drop-zone').forEach(z => {
+        z.classList.toggle('filled', !!z.querySelector('.chip'));
+      });
+      updateProgress();
+    });
+  });
+
+  zones.forEach(zone => {
+    zone.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      if (!draggedChip) return;
+      const existing = zone.querySelector('.chip');
+      if (existing) pool.appendChild(existing);
+      zone.appendChild(draggedChip);
+      zone.classList.add('filled');
+      updateProgress();
+    });
+  });
+
+  pool.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    pool.classList.add('drag-over');
+  });
+  pool.addEventListener('dragleave', () => pool.classList.remove('drag-over'));
+  pool.addEventListener('drop', e => {
+    e.preventDefault();
+    pool.classList.remove('drag-over');
+    if (!draggedChip) return;
+    pool.appendChild(draggedChip);
+    card.querySelectorAll('.drop-zone').forEach(z => {
+      z.classList.toggle('filled', !!z.querySelector('.chip'));
+    });
+    updateProgress();
+  });
+}
+
+document.querySelectorAll('.question-card').forEach(card => {
+  if (card.dataset.qtype === 'matching') setupDragAndDrop(card);
+});
+
+/* ==================== ПРОГРЕСС ==================== */
+
+function isQuestionAnswered(card) {
+  const type = card.dataset.qtype;
+  if (type === 'single' || type === 'multiple') {
+    return !!card.querySelector('input:checked');
+  } else {
+    const zones = card.querySelectorAll('.drop-zone');
+    for (const z of zones) {
+      if (!z.querySelector('.chip')) return false;
+    }
+    return true;
+  }
+}
+
+function updateProgress() {
+  const cards = document.querySelectorAll('.question-card');
+  let answered = 0;
+  cards.forEach(c => { if (isQuestionAnswered(c)) answered++; });
+  const total = cards.length;
+  progressFill.style.width = (answered / total * 100) + '%';
+  progressLabel.textContent = answered + ' / ' + total;
+}
+
+updateProgress();
+
+/* ==================== ПРОВЕРКА ==================== */
+
+function getCorrectText(q) {
+  if (q.type === 'single' || q.type === 'multiple') {
+    return q.correct.join(', ');
+  } else {
+    return Object.keys(q.correct).map(l => l + '–' + q.correct[l]).join('; ');
+  }
+}
+
+function getUserAnswerText(card, q) {
+  if (q.type === 'single' || q.type === 'multiple') {
+    const checked = card.querySelectorAll('input:checked');
+    const vals = Array.from(checked).map(i => i.value);
+    return vals.length ? vals.sort().join(', ') : '—';
+  } else {
+    const pairs = [];
+    let any = false;
+    card.querySelectorAll('.drop-zone').forEach(z => {
+      const chip = z.querySelector('.chip');
+      if (chip) {
+        pairs.push(z.dataset.left + '–' + chip.dataset.key);
+        any = true;
+      } else {
+        pairs.push(z.dataset.left + '–?');
+      }
+    });
+    return any ? pairs.join('; ') : '—';
+  }
+}
+
+function checkQuestion(card, q) {
+  if (q.type === 'single' || q.type === 'multiple') {
+    const checked = card.querySelectorAll('input:checked');
+    const vals = Array.from(checked).map(i => i.value).sort();
+    const correctSorted = q.correct.slice().sort();
+    return JSON.stringify(vals) === JSON.stringify(correctSorted);
+  } else {
+    for (const leftKey of Object.keys(q.correct)) {
+      const zone = card.querySelector('.drop-zone[data-left="' + leftKey + '"]');
+      const chip = zone ? zone.querySelector('.chip') : null;
+      const chipKey = chip ? chip.dataset.key : null;
+      if (chipKey !== q.correct[leftKey]) return false;
+    }
+    return true;
+  }
+}
+
+function markQuestion(card, q, isCorrect) {
+  card.classList.add(isCorrect ? 'correct-card' : 'wrong-card');
+
+  if (q.type === 'single' || q.type === 'multiple') {
+    card.querySelectorAll('.option').forEach(label => {
+      const key = label.dataset.key;
+      const input = label.querySelector('input');
+      const isCorrectOpt = q.correct.includes(key);
+      if (isCorrectOpt) label.classList.add('correct-opt');
+      if (input.checked && !isCorrectOpt) label.classList.add('wrong-opt');
+    });
+  } else {
+    card.querySelectorAll('.drop-zone').forEach(zone => {
+      const leftKey = zone.dataset.left;
+      const correctKey = q.correct[leftKey];
+      const chip = zone.querySelector('.chip');
+      const chipKey = chip ? chip.dataset.key : null;
+      if (chipKey !== correctKey) {
+        zone.style.borderColor = 'var(--wrong)';
+        zone.style.background = '#fdeaea';
+      } else {
+        zone.style.borderColor = 'var(--correct)';
+        zone.style.background = '#e9f7ef';
+      }
+    });
+  }
+}
+
+submitBtn.addEventListener('click', () => {
+  const cards = document.querySelectorAll('.question-card');
+  let correctCount = 0;
+  let wrongCount = 0;
+
+  cards.forEach(card => {
+    const q = questions.find(x => x.id == card.dataset.qid);
+    const isCorrect = checkQuestion(card, q);
+    if (isCorrect) correctCount++; else wrongCount++;
+    markQuestion(card, q, isCorrect);
+  });
+
+  const total = cards.length;
+  const score = Math.round(((correctCount - wrongCount) / total) * 100);
+
+  let scoreClass = 'score-bad';
+  if (score >= 50) scoreClass = 'score-good';
+  else if (score >= 0) scoreClass = 'score-mid';
+
+  let html = '<div class="result-section">';
+  html += '<div class="score-box ' + scoreClass + '">Итог: ' + score + ' баллов</div>';
+  html += '<p style="text-align:center;color:var(--muted);margin-top:-8px;">Правильно: ' + correctCount + ' · Неправильно/без ответа: ' + wrongCount + '</p>';
+
+  cards.forEach((card, idx) => {
+    const q = questions.find(x => x.id == card.dataset.qid);
+    const isCorrect = checkQuestion(card, q);
+    const userAns = getUserAnswerText(card, q);
+    const correctAns = getCorrectText(q);
+
+    html += '<div class="result-item">';
+    html += '<div class="result-q">' + (idx + 1) + '. ' + q.question + '</div>';
+    html += '<div class="result-line"><span class="label">Ваш ответ:</span> <span class="' + (isCorrect ? 'result-correct' : 'result-wrong') + '">' + userAns + '</span></div>';
+    if (!isCorrect) {
+      html += '<div class="result-line"><span class="label">Правильный ответ:</span> <span class="result-correct">' + correctAns + '</span></div>';
+    } else {
+      html += '<div class="result-line"><span class="result-ok">✓ Верно</span></div>';
+    }
+    html += '</div>';
+  });
+
+  html += '</div>';
+  resultArea.innerHTML = html;
+  resultArea.scrollIntoView({behavior: 'smooth', block: 'start'});
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Ответы проверены';
+});
+</script>
+</body>
+</html>
