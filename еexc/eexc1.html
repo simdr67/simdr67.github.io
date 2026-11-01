@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тест: Энергетический обмен (часть 1)</title>
+<style>
+  :root {
+    --bg: #f4f7fb; --card: #ffffff; --primary: #3b6ea5; --primary-dark: #2c527a;
+    --border: #d7e2ee; --text: #22303f; --muted: #6b7c8f;
+    --correct: #2e9e5b; --wrong: #d64545; --warn: #e0a800;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+         background: var(--bg); color: var(--text); line-height: 1.5; }
+  .container { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { text-align: center; margin-bottom: 24px; }
+  header h1 { font-size: 28px; margin: 0 0 8px; color: var(--primary-dark); }
+  header p { margin: 0; color: var(--muted); }
+  .progress-bar { position: sticky; top: 0; z-index: 10;
+    background: rgba(244, 247, 251, 0.95); backdrop-filter: blur(6px);
+    padding: 10px 0; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .progress-inner { max-width: 860px; margin: 0 auto; padding: 0 16px;
+    display: flex; align-items: center; gap: 12px; }
+  .progress-track { flex: 1; height: 8px; background: #e2eaf3; border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease; }
+  .progress-label { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .question-card { background: var(--card); border-radius: 12px; padding: 20px 22px; margin-bottom: 18px;
+    box-shadow: 0 2px 8px rgba(34, 48, 63, 0.06); border: 1px solid var(--border); }
+  .question-card.correct-card { border-left: 4px solid var(--correct); }
+  .question-card.wrong-card { border-left: 4px solid var(--wrong); }
+  .q-header { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; }
+  .q-num { background: var(--primary); color: #fff; font-weight: 700; font-size: 13px;
+    border-radius: 6px; padding: 2px 9px; flex-shrink: 0; margin-top: 2px; }
+  .q-text { font-weight: 600; font-size: 16px; }
+  .q-type-hint { font-size: 12px; color: var(--muted); font-weight: 400; display: block; margin-top: 2px; }
+  .options { display: flex; flex-direction: column; gap: 8px; }
+  .option { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px;
+    border-radius: 8px; border: 1px solid var(--border); cursor: pointer;
+    transition: background 0.15s, border-color 0.15s; user-select: none; }
+  .option:hover { background: #f0f5fb; }
+  .option input { margin-top: 3px; accent-color: var(--primary); flex-shrink: 0; }
+  .option.selected { border-color: var(--primary); background: #e8f1fa; }
+  .option.correct-opt { border-color: var(--correct); background: #e9f7ef; }
+  .option.wrong-opt { border-color: var(--wrong); background: #fdeaea; }
+  .opt-key { font-weight: 700; color: var(--primary-dark); flex-shrink: 0; }
+  .matching { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .match-row { display: flex; gap: 10px; align-items: center; background: #f7fafd;
+    border-radius: 8px; padding: 8px 10px; border: 1px solid var(--border); }
+  .match-left { flex: 1; font-size: 14px; }
+  .match-left .key { font-weight: 700; color: var(--primary-dark); margin-right: 4px; }
+  .drop-zone { width: 74px; min-height: 42px; border: 2px dashed #b9cde0; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; background: #fff;
+    transition: border-color 0.15s, background 0.15s; flex-shrink: 0; cursor: pointer; }
+  .drop-zone.drag-over { border-color: var(--primary); background: #eaf2fb; }
+  .drop-zone.filled { border-style: solid; border-color: var(--primary); }
+  .chip-pool { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px;
+    background: #f0f5fb; border-radius: 8px; border: 1px dashed #c4d6e7; min-height: 52px; }
+  .chip-pool.drag-over { background: #e2eefb; }
+  .chip { background: #fff; border: 1px solid #b9cde0; border-radius: 8px; padding: 6px 10px;
+    font-size: 13px; cursor: pointer; display: flex; gap: 6px; align-items: flex-start;
+    max-width: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: all 0.15s; user-select: none; }
+  .chip.selected { border-color: var(--primary); background: #e8f1fa; box-shadow: 0 0 0 2px rgba(59, 110, 165, 0.2); }
+  .chip .chip-key { font-weight: 700; color: var(--primary-dark); }
+  .drop-zone .chip { margin: 0; padding: 4px 8px; font-size: 13px; cursor: pointer; }
+  .drop-zone .chip .chip-text { display: none; }
+  .btn { display: inline-block; background: var(--primary); color: #fff; border: none; border-radius: 10px;
+    padding: 14px 28px; font-size: 16px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s; width: 100%; }
+  .btn:hover { background: var(--primary-dark); }
+  .btn:disabled { background: #a9bdd2; cursor: not-allowed; }
+  .btn-secondary { background: var(--muted); }
+  .btn-secondary:hover { background: #55687a; }
+  .result-section { margin-top: 28px; background: var(--card); border-radius: 12px; padding: 22px;
+    border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(34, 48, 63, 0.06); }
+  .score-box { text-align: center; padding: 16px; border-radius: 10px; margin-bottom: 18px;
+    font-size: 22px; font-weight: 700; }
+  .score-good { background: #e9f7ef; color: var(--correct); }
+  .score-mid { background: #fdf6e3; color: var(--warn); }
+  .score-bad { background: #fdeaea; color: var(--wrong); }
+  .result-item { border-top: 1px solid var(--border); padding: 14px 0; }
+  .result-item:first-child { border-top: none; }
+  .result-q { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+  .result-line { font-size: 14px; margin: 3px 0; }
+  .result-line .label { color: var(--muted); }
+  .result-correct { color: var(--correct); font-weight: 600; }
+  .result-wrong { color: var(--wrong); font-weight: 600; }
+  .result-ok { color: var(--correct); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar">
+  <div class="progress-inner">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">0 / 15</div>
+  </div>
+</div>
+
+<div class="container">
+  <header>
+    <h1>Тест: Энергетический обмен (часть 1)</h1>
+    <p>15 случайных вопросов · выберите все правильные ответы · установите соответствия</p>
+  </header>
+
+  <form id="quizForm"></form>
+
+  <div id="submitArea" style="margin-top: 8px; display: flex; gap: 10px;">
+    <button type="button" class="btn" id="submitBtn">Проверить ответы</button>
+    <button type="button" class="btn btn-secondary" id="restartBtn" style="display: none;">Пройти заново</button>
+  </div>
+
+  <div id="resultArea"></div>
+</div>
+
+<script>
+/* ==================== БАНК ВОПРОСОВ ==================== */
+
+const choicePool = [
+  {
+    id: 1, type: 'choice',
+    question: 'Участие АТФ в процессах:',
+    options: [
+      {key: 'а', text: 'Участие в анаболических процессах'},
+      {key: 'б', text: 'Использование в транспорте веществ через мембраны'},
+      {key: 'в', text: 'Синтез за счет тепловой энергии реакций катаболизма'},
+      {key: 'г', text: 'Гидролиз макроэргических связей с выделением теплоты'},
+      {key: 'д', text: 'Синтез за счет энергии окисления веществ'}
+    ],
+    correct: ['а', 'б', 'д']
+  },
+  {
+    id: 2, type: 'choice',
+    question: 'Причинами гипоксии тканей могут быть:',
+    options: [
+      {key: 'а', text: 'Снижение транспорта кислорода в митохондрии'},
+      {key: 'б', text: 'Ингибирование АТФ-синтазы'},
+      {key: 'в', text: 'Ингибирование цитохромоксидазы'},
+      {key: 'г', text: 'Связывание СО с убихиноном и нарушение переноса электронов от комплекса II'},
+      {key: 'д', text: 'Ингибирование комплекса I'}
+    ],
+    correct: ['а', 'в', 'д']
+  },
+  {
+    id: 3, type: 'choice',
+    question: 'Коэффициент фосфорилирования (Р/О) отражает:',
+    options: [
+      {key: 'а', text: 'Количество молекул АТФ, синтезированных на пару перенесенных электронов'},
+      {key: 'б', text: 'Скорость переноса электронов по дыхательной цепи'},
+      {key: 'в', text: 'Поглощение кислорода'},
+      {key: 'г', text: 'Количество АДФ в матриксе митохондрий'},
+      {key: 'д', text: 'Теплопродукцию'}
+    ],
+    correct: ['а']
+  },
+  {
+    id: 4, type: 'choice',
+    question: 'Свойства АТФ:',
+    options: [
+      {key: 'а', text: 'В сутки синтезируется в количестве, равном массе тела'},
+      {key: 'б', text: 'Является универсальным аккумулятором энергии реакций катаболизма'},
+      {key: 'в', text: 'Синтезируется путем окислительного фосфорилирования'},
+      {key: 'г', text: 'Участвует в реакциях, катализируемых лигазами'},
+      {key: 'д', text: 'Запасается в клетках в значительных количествах'}
+    ],
+    correct: ['а', 'б', 'в', 'г']
+  },
+  {
+    id: 5, type: 'choice',
+    question: 'Укажите верные реакции дыхательной цепи:',
+    options: [
+      {key: 'а', text: 'Сукцинат + Q → Фумарат + QH2'},
+      {key: 'б', text: '2 цит c(Fe2+) + ½O2 → 2 цит c(Fe3+) + ½O2- '},
+      {key: 'в', text: '2 цит c(Fe2+) + 2 цит a3(Fe3+) → 2 цит c(Fe3+) + 2 a3(Fe2+)'},
+      {key: 'г', text: 'NADH + Q → NAD+ + QH2'},
+      {key: 'д', text: 'QH2 + 2 цит c(Fe3+) → Q + 2 цит c(Fe2+) + 2H+'}
+    ],
+    correct: ['а', 'г', 'д']
+  },
+  {
+    id: 6, type: 'choice',
+    question: 'Дыхательный контроль характеризуется:',
+    options: [
+      {key: 'а', text: 'Снижением скорости дыхания при повышении отношения АДФ/АТФ'},
+      {key: 'б', text: 'Ускорением дыхания при повышении концентрации АДФ в клетке'},
+      {key: 'в', text: 'Изменением величины Р/О в зависимости от редокс-потенциалов субстратов'},
+      {key: 'г', text: 'Снижением скорости дыхания при увеличении концентрации АТФ'},
+      {key: 'д', text: 'Увеличением поглощения О2 митохондриями при повышении концентрации АТФ'}
+    ],
+    correct: ['б', 'в', 'г']
+  },
+  {
+    id: 7, type: 'choice',
+    question: 'При действии разобщителей (например, 2,4-динитрофенола):',
+    options: [
+      {key: 'а', text: 'Увеличивается потребление кислорода, но синтез АТФ не происходит'},
+      {key: 'б', text: 'Ускоряется синтез АТФ'},
+      {key: 'в', text: 'Увеличивается теплопродукция'},
+      {key: 'г', text: 'Снижается потребление кислорода'},
+      {key: 'д', text: 'Увеличивается отношение NADH/NAD+'}
+    ],
+    correct: ['а', 'в']
+  },
+  {
+    id: 8, type: 'choice',
+    question: 'От чего зависит скорость тканевого дыхания?',
+    options: [
+      {key: 'а', text: 'Объема легочной вентиляции'},
+      {key: 'б', text: 'Уровня NADH в клетках'},
+      {key: 'в', text: 'Природы окисляемых субстратов'},
+      {key: 'г', text: 'Отношения АДФ/АТФ'},
+      {key: 'д', text: 'Количества пищевых веществ, поступающих в организм'}
+    ],
+    correct: ['в', 'г']
+  },
+  {
+    id: 9, type: 'choice',
+    question: 'Какие субстраты окисляются NAD-зависимыми дегидрогеназами?',
+    options: [
+      {key: 'а', text: 'Сукцината'},
+      {key: 'б', text: 'альфа-кетоглутарат'},
+      {key: 'в', text: 'Изоцитрата'},
+      {key: 'г', text: 'Малата'},
+      {key: 'д', text: 'Глутамата'}
+    ],
+    correct: ['б', 'в', 'г', 'д']
+  },
+  {
+    id: 10, type: 'choice',
+    question: 'Свойства АТФ-синтазы:',
+    options: [
+      {key: 'а', text: 'Интегральный белок внутренней мембраны митохондрий'},
+      {key: 'б', text: 'Образует протонный канал'},
+      {key: 'в', text: 'Активируется АТФ'},
+      {key: 'г', text: 'Взаимодействует с О2'},
+      {key: 'д', text: 'Состоит из нескольких протомеров'}
+    ],
+    correct: ['а', 'б', 'д']
+  },
+  {
+    id: 11, type: 'choice',
+    question: 'При разобщении дыхания и фосфорилирования (2,4-ДНФ):',
+    options: [
+      {key: 'а', text: 'Активность АТФ-синтазы повышается'},
+      {key: 'б', text: 'Окисление сукцината продолжается'},
+      {key: 'в', text: 'Большая часть энергии окисления NADH в ЦПЭ рассеивается в виде теплоты'},
+      {key: 'г', text: 'Скорость окисления малата снижается'},
+      {key: 'д', text: 'Активность NADH-дегидрогеназы увеличивается'}
+    ],
+    correct: ['б', 'в']
+  },
+  {
+    id: 12, type: 'choice',
+    question: 'Укажите правильные утверждения для ингибиторов ЦПЭ:',
+    options: [
+      {key: 'а', text: 'Цианиды тормозят взаимодействие кислорода с цитохромоксидазой'},
+      {key: 'б', text: '2,4-динитрофенол разобщает процесс дыхания и фосфорилирования'},
+      {key: 'в', text: 'Ротенон ингибирует NADH-дегидрогеназу'},
+      {key: 'г', text: 'Олигомицин образует неактивный комплекс с АТФ-синтазой'},
+      {key: 'д', text: 'Антимицин ингибирует восстановление цитохрома с'}
+    ],
+    correct: ['а', 'б', 'в', 'г']
+  },
+  {
+    id: 13, type: 'choice',
+    question: 'Свойства разобщителей (например, 2,4-динитрофенола):',
+    options: [
+      {key: 'а', text: 'Тормозит перенос электронов без нарушения синтеза АТФ'},
+      {key: 'б', text: 'Снижает коэффициент Р/О'},
+      {key: 'в', text: 'Увеличивает поглощение кислорода в митохондриях'},
+      {key: 'г', text: 'Повышает концентрацию NADH в митохондриях'},
+      {key: 'д', text: 'Нарушает перенос электронов только от флавиновых дегидрогеназ'}
+    ],
+    correct: ['б', 'в']
+  },
+  {
+    id: 14, type: 'choice',
+    question: 'Этапы окислительного фосфорилирования включают:',
+    options: [
+      {key: 'а', text: 'Транспорт протонов при участии АТФ-азы в межмембранное пространство'},
+      {key: 'б', text: 'Синтез 3-х моль АТФ на моль субстрата'},
+      {key: 'в', text: 'Транспорт АДФ в цитозоль'},
+      {key: 'г', text: 'Гидролиз АТФ'},
+      {key: 'д', text: 'Два этапа сопряжения'}
+    ],
+    correct: ['а', 'б', 'д']
+  },
+  {
+    id: 15, type: 'choice',
+    question: 'Свойства QH2-дегидрогеназы (комплекса III):',
+    options: [
+      {key: 'а', text: 'Акцептор электронов для сукцинатдегидрогеназы'},
+      {key: 'б', text: 'Содержит кофермент FAD'},
+      {key: 'в', text: 'Донор электронов для цитохромоксидазы'},
+      {key: 'г', text: 'Находится в матриксе митохондрий'},
+      {key: 'д', text: 'Состоит из двух типов цитохромов'}
+    ],
+    correct: ['а', 'в', 'д']
+  },
+  {
+    id: 16, type: 'choice',
+    question: 'Свойства убихинона (КоQ):',
+    options: [
+      {key: 'а', text: 'Донор электронов для цитохромоксидазы'},
+      {key: 'б', text: 'Акцептор водорода от флавиновых ферментов'},
+      {key: 'в', text: 'Кофермент NADH-дегидрогеназы'},
+      {key: 'г', text: 'Прочно связан с белками внутренней мембраны митохондрий'},
+      {key: 'д', text: 'Первичный акцептор водорода от различных субстратов'}
+    ],
+    correct: ['б', 'д']
+  },
+  {
+    id: 17, type: 'choice',
+    question: 'Свойства FAD/FMN:',
+    options: [
+      {key: 'а', text: 'Кофермент NADH-дегидрогеназы'},
+      {key: 'б', text: 'Кофермент сукцинатдегидрогеназы'},
+      {key: 'в', text: 'В восстановленной форме может быть донором водорода для убихинона'},
+      {key: 'г', text: 'Содержит витамин В1'},
+      {key: 'д', text: 'Акцептор водорода от NADH'}
+    ],
+    correct: ['а', 'б', 'в', 'д']
+  },
+  {
+    id: 18, type: 'choice',
+    question: 'Стадии катаболизма энергетических субстратов включают:',
+    options: [
+      {key: 'а', text: 'Перенос водорода с восстановленных коферментов NADH и FADH2 в ЦПЭ'},
+      {key: 'б', text: 'Окисление ацетил-КоА в цитратном цикле'},
+      {key: 'в', text: 'Превращение жирных кислот в ацетил-КоА'},
+      {key: 'г', text: 'Расщепление гликогена панкреатической амилазой'},
+      {key: 'д', text: 'Превращение метаболитов, образованных в специфических путях катаболизма, до СО2 и Н2О'}
+    ],
+    correct: ['а', 'б', 'в', 'д']
+  },
+  {
+    id: 19, type: 'choice',
+    question: 'В транспорте электронов к кислороду участвуют:',
+    options: [
+      {key: 'а', text: 'Убихинон'},
+      {key: 'б', text: 'АТФ-синтаза'},
+      {key: 'в', text: 'Сукцинатдегидрогеназа'},
+      {key: 'г', text: 'QH2-дегидрогеназа'},
+      {key: 'д', text: 'Цитохромоксидаза'}
+    ],
+    correct: ['а', 'в', 'г', 'д']
+  },
+  {
+    id: 20, type: 'choice',
+    question: 'Этапы энергетического обмена включают:',
+    options: [
+      {key: 'а', text: 'Транспорт электронов к кислороду по ЦПЭ'},
+      {key: 'б', text: 'Включение метаболитов в общий путь катаболизма'},
+      {key: 'в', text: 'Превращение метаболитов в специфических путях катаболизма'},
+      {key: 'г', text: 'Образование восстановленных коферментов NADH и FADH2'},
+      {key: 'д', text: 'Синтез АТФ путем окислительного фосфорилирования'}
+    ],
+    correct: ['а', 'б', 'в', 'г', 'д']
+  },
+  {
+    id: 21, type: 'choice',
+    question: 'Специфические эффекты ингибиторов:',
+    options: [
+      {key: 'а', text: '2,4-динитрофенол разобщает процесс дыхания и фосфорилирования'},
+      {key: 'б', text: 'Цианид ингибирует цитохромоксидазу'},
+      {key: 'в', text: 'Олигомицин ингибирует АТФ-синтазу'},
+      {key: 'г', text: 'Ротенон увеличивает протонный градиент'},
+      {key: 'д', text: 'Амитал ингибирует NADH-дегидрогеназу'}
+    ],
+    correct: ['а', 'б', 'в', 'д']
+  }
+];
+
+const matchingPool = [
+  {
+    id: 101, type: 'matching',
+    question: 'Установите соответствие между ферментом и реакцией:',
+    left: [
+      {key: '1', text: 'Цитохромоксидаза'},
+      {key: '2', text: 'Малатдегидрогеназа'},
+      {key: '3', text: 'QH2-дегидрогеназа'},
+      {key: '4', text: 'NADH-дегидрогеназа'}
+    ],
+    right: [
+      {key: 'а', text: 'QH2 + 2цит c(Fe3+) → Q + 2цит c(Fe2+) + 2H+'},
+      {key: 'б', text: 'NADH + H+ + Q → NAD+ + QH2'},
+      {key: 'в', text: '2цит c(Fe2+) + 1/2O2 → 2цит c(Fe3+) + H2O'},
+      {key: 'г', text: 'Малат + NAD+ → Оксалоацетат + NADH+H+'},
+      {key: 'д', text: 'Сукцинат + Q → Фумарат + QH2'}
+    ],
+    correct: {'1': 'в', '2': 'г', '3': 'а', '4': 'б'}
+  },
+  {
+    id: 102, type: 'matching',
+    question: 'Установите соответствие между ферментом ЦПЭ и его ингибитором:',
+    left: [
+      {key: '1', text: 'NADH-дегидрогеназа'},
+      {key: '2', text: 'QH2-дегидрогеназа'},
+      {key: '3', text: 'Цитохромоксидаза'}
+    ],
+    right: [
+      {key: 'а', text: 'Ротенон'},
+      {key: 'б', text: 'Эритромицин'},
+      {key: 'в', text: 'Цианиды'},
+      {key: 'г', text: 'Антимицин'},
+      {key: 'д', text: 'Стрептомицин'}
+    ],
+    correct: {'1': 'а', '2': 'г', '3': 'в'}
+  },
+  {
+    id: 103, type: 'matching',
+    question: 'Установите соответствие между ферментом ЦПЭ и его коферментом:',
+    left: [
+      {key: '1', text: 'NADH-дегидрогеназа'},
+      {key: '2', text: 'QH2-дегидрогеназа'},
+      {key: '3', text: 'Цитохромоксидаза'}
+    ],
+    right: [
+      {key: 'а', text: 'Гем, Cu2+'},
+      {key: 'б', text: 'FMN'},
+      {key: 'в', text: 'NAD'},
+      {key: 'г', text: 'Гем, FeS'},
+      {key: 'д', text: 'FAD'}
+    ],
+    correct: {'1': 'б', '2': 'г', '3': 'а'}
+  },
+  {
+    id: 104, type: 'matching',
+    question: 'Установите соответствие между веществом и его свойством:',
+    left: [
+      {key: '1', text: 'FADH2'},
+      {key: '2', text: 'NADH'},
+      {key: '3', text: 'Гем'}
+    ],
+    right: [
+      {key: 'а', text: 'Непрочно связан с апоферментом'},
+      {key: 'б', text: 'Содержит витамин В1'},
+      {key: 'в', text: 'Простетическая группа QH2-дегидрогеназы'},
+      {key: 'г', text: 'Содержит витамин В2'},
+      {key: 'д', text: 'Кофермент NADH-дегидрогеназы'}
+    ],
+    correct: {'1': 'г', '2': 'а', '3': 'в'}
+  },
+  {
+    id: 105, type: 'matching',
+    question: 'Установите соответствие между комплексом ЦПЭ и его ингибитором:',
+    left: [
+      {key: '1', text: 'Комплекс I'},
+      {key: '2', text: 'Комплекс III'},
+      {key: '3', text: 'Комплекс IV'}
+    ],
+    right: [
+      {key: 'а', text: 'Амитал'},
+      {key: 'б', text: 'Олигомицин'},
+      {key: 'в', text: 'Цианид'},
+      {key: 'г', text: 'Антимицин А'},
+      {key: 'д', text: '2,4-динитрофенол'}
+    ],
+    correct: {'1': 'а', '2': 'г', '3': 'в'}
+  },
+  {
+    id: 106, type: 'matching',
+    question: 'Установите соответствие между ферментом/белком и его свойством:',
+    left: [
+      {key: '1', text: 'АТФ-синтаза'},
+      {key: '2', text: 'Цитохромоксидаза'},
+      {key: '3', text: 'NADH-дегидрогеназа'}
+    ],
+    right: [
+      {key: 'а', text: 'Ингибируется барбитуратами'},
+      {key: 'б', text: 'Активируется протонами'},
+      {key: 'в', text: 'Ковалентно связывает 2,4-динитрофенол'},
+      {key: 'г', text: 'Ингибируется цианидами'},
+      {key: 'д', text: 'Взаимодействует с QH2'}
+    ],
+    correct: {'1': 'б', '2': 'г', '3': 'а'}
+  },
+  {
+    id: 107, type: 'matching',
+    question: 'Установите соответствие между комплексом и протекающей химической реакцией:',
+    left: [
+      {key: '1', text: 'NADH-дегидрогеназа'},
+      {key: '2', text: 'Сукцинатдегидрогеназа'},
+      {key: '3', text: 'Цитохромоксидаза'}
+    ],
+    right: [
+      {key: 'а', text: 'Сукцинат -> Фумарат'},
+      {key: 'б', text: '2H+ + 1/2O2 + 2e- = H2O'},
+      {key: 'в', text: 'NADH -> NAD+'},
+      {key: 'г', text: 'ADP + P1 = ATP'},
+      {key: 'д', text: 'O2- + 2e- = O2'}
+    ],
+    correct: {'1': 'в', '2': 'а', '3': 'б'}
+  },
+  {
+    id: 108, type: 'matching',
+    question: 'Установите соответствие между коферментом и его структурной формулой (описанием):',
+    left: [
+      {key: '1', text: 'NAD+'},
+      {key: '2', text: 'FMN'},
+      {key: '3', text: 'FAD'}
+    ],
+    right: [
+      {key: 'а', text: 'Структура пиридина'},
+      {key: 'б', text: 'Структура изоаллоксазина с фосфатом'},
+      {key: 'в', text: 'Структура изоаллоксазина с АДФ'},
+      {key: 'г', text: 'Структура с дисульфидной связью (липоевая кислота)'},
+      {key: 'д', text: 'Структура гема'}
+    ],
+    correct: {'1': 'а', '2': 'б', '3': 'в'}
+  }
+];
+
+/* ==================== ВЫБОРКА 15 ВОПРОСОВ ==================== */
+
+function pickRandom(arr, n) {
+  const copy = arr.slice();
+  const out = [];
+  for (let i = 0; i < n && copy.length > 0; i++) {
+    const idx = Math.floor(Math.random() * copy.length);
+    out.push(copy.splice(idx, 1)[0]);
+  }
+  return out;
+}
+
+let questions = [];
+const form = document.getElementById('quizForm');
+const progressFill = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+const submitBtn = document.getElementById('submitBtn');
+const restartBtn = document.getElementById('restartBtn');
+const resultArea = document.getElementById('resultArea');
+let selectedChip = null;
+
+function initQuiz() {
+  questions = [...pickRandom(choicePool, 12), ...pickRandom(matchingPool, 3)];
+  questions.sort(() => Math.random() - 0.5);
+  
+  form.innerHTML = '';
+  resultArea.innerHTML = '';
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Проверить ответы';
+  submitBtn.style.display = 'block';
+  restartBtn.style.display = 'none';
+  selectedChip = null;
+  
+  questions.forEach((q, i) => renderQuestion(q, i));
+  
+  document.querySelectorAll('.question-card').forEach(card => {
+    if (card.dataset.qtype === 'matching') setupTapToSelect(card);
+  });
+  
+  updateProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ==================== РЕНДЕР ==================== */
+
+function renderQuestion(q, index) {
+  const card = document.createElement('div');
+  card.className = 'question-card';
+  card.dataset.qid = q.id;
+  card.dataset.qtype = q.type;
+
+  const header = document.createElement('div');
+  header.className = 'q-header';
+
+  const num = document.createElement('div');
+  num.className = 'q-num';
+  num.textContent = 'Вопрос ' + (index + 1);
+
+  const textWrap = document.createElement('div');
+  textWrap.className = 'q-text';
+  textWrap.textContent = q.question;
+
+  // Возвращаем подсказки по типу вопроса
+  const hint = document.createElement('span');
+  hint.className = 'q-type-hint';
+  if (q.type === 'choice') {
+    if (q.correct.length === 1) {
+      hint.textContent = 'Выберите один вариант ответа';
+    } else {
+      hint.textContent = 'Выберите все правильные варианты';
+    }
+  } else {
+    hint.textContent = 'Нажмите на вариант, затем на пустое поле для соответствия';
+  }
+  textWrap.appendChild(hint);
+
+  header.appendChild(num);
+  header.appendChild(textWrap);
+  card.appendChild(header);
+
+  if (q.type === 'choice') {
+    const opts = document.createElement('div');
+    opts.className = 'options';
+    q.options.forEach(opt => {
+      const label = document.createElement('label');
+      label.className = 'option';
+      label.dataset.key = opt.key;
+
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.name = 'q_' + q.id + '_' + index;
+      input.value = opt.key;
+      
+      input.addEventListener('change', () => {
+        label.classList.toggle('selected', input.checked);
+        updateProgress();
+      });
+      
+      label.appendChild(input);
+
+      const keySpan = document.createElement('span');
+      keySpan.className = 'opt-key';
+      keySpan.textContent = opt.key + ')';
+      label.appendChild(keySpan);
+
+      const txt = document.createElement('span');
+      txt.textContent = opt.text;
+      label.appendChild(txt);
+
+      opts.appendChild(label);
+    });
+    card.appendChild(opts);
+  } else if (q.type === 'matching') {
+    const matching = document.createElement('div');
+    matching.className = 'matching';
+
+    q.left.forEach(leftItem => {
+      const row = document.createElement('div');
+      row.className = 'match-row';
+
+      const leftDiv = document.createElement('div');
+      leftDiv.className = 'match-left';
+      const k = document.createElement('span');
+      k.className = 'key';
+      k.textContent = leftItem.key + '.';
+      leftDiv.appendChild(k);
+      leftDiv.appendChild(document.createTextNode(' ' + leftItem.text));
+      row.appendChild(leftDiv);
+
+      const zone = document.createElement('div');
+      zone.className = 'drop-zone';
+      zone.dataset.left = leftItem.key;
+      row.appendChild(zone);
+
+      matching.appendChild(row);
+    });
+
+    card.appendChild(matching);
+
+    const pool = document.createElement('div');
+    pool.className = 'chip-pool';
+    q.right.forEach(rightItem => {
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.dataset.key = rightItem.key;
+
+      const ck = document.createElement('span');
+      ck.className = 'chip-key';
+      ck.textContent = rightItem.key + ')';
+      chip.appendChild(ck);
+
+      const ct = document.createElement('span');
+      ct.className = 'chip-text';
+      ct.textContent = rightItem.text;
+      chip.appendChild(ct);
+
+      pool.appendChild(chip);
+    });
+    card.appendChild(pool);
+  }
+
+  form.appendChild(card);
+}
+
+/* ==================== TAP-TO-SELECT ==================== */
+
+function setupTapToSelect(card) {
+  const pool = card.querySelector('.chip-pool');
+  const zones = card.querySelectorAll('.drop-zone');
+  const chips = card.querySelectorAll('.chip');
+
+  chips.forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const zone = chip.closest('.drop-zone');
+      
+      if (zone) {
+        pool.appendChild(chip);
+        zone.classList.remove('filled');
+        chip.classList.remove('selected');
+        selectedChip = null;
+        updateProgress();
+      } else {
+        if (selectedChip === chip) {
+          chip.classList.remove('selected');
+          selectedChip = null;
+        } else {
+          if (selectedChip) selectedChip.classList.remove('selected');
+          selectedChip = chip;
+          chip.classList.add('selected');
+        }
+      }
+    });
+  });
+
+  zones.forEach(zone => {
+    zone.addEventListener('click', () => {
+      if (selectedChip) {
+        const existing = zone.querySelector('.chip');
+        if (existing) {
+          pool.appendChild(existing);
+        }
+        zone.appendChild(selectedChip);
+        zone.classList.add('filled');
+        selectedChip.classList.remove('selected');
+        selectedChip = null;
+        updateProgress();
+      }
+    });
+  });
+}
+
+/* ==================== ПРОГРЕСС ==================== */
+
+function isQuestionAnswered(card) {
+  const type = card.dataset.qtype;
+  if (type === 'choice') {
+    return !!card.querySelector('input:checked');
+  } else {
+    const zones = card.querySelectorAll('.drop-zone');
+    for (const z of zones) {
+      if (!z.querySelector('.chip')) return false;
+    }
+    return true;
+  }
+}
+
+function updateProgress() {
+  const cards = document.querySelectorAll('.question-card');
+  let answered = 0;
+  cards.forEach(c => { if (isQuestionAnswered(c)) answered++; });
+  const total = cards.length;
+  progressFill.style.width = (answered / total * 100) + '%';
+  progressLabel.textContent = answered + ' / ' + total;
+}
+
+/* ==================== ПРОВЕРКА ==================== */
+
+function getCorrectText(q) {
+  if (q.type === 'choice') {
+    return q.correct.join(', ');
+  } else {
+    return Object.keys(q.correct).map(l => l + '–' + q.correct[l]).join('; ');
+  }
+}
+
+function getUserAnswerText(card, q) {
+  if (q.type === 'choice') {
+    const checked = card.querySelectorAll('input:checked');
+    const vals = Array.from(checked).map(i => i.value);
+    return vals.length ? vals.sort().join(', ') : '—';
+  } else {
+    const pairs = [];
+    let any = false;
+    card.querySelectorAll('.drop-zone').forEach(z => {
+      const chip = z.querySelector('.chip');
+      if (chip) {
+        pairs.push(z.dataset.left + '–' + chip.dataset.key);
+        any = true;
+      } else {
+        pairs.push(z.dataset.left + '–?');
+      }
+    });
+    return any ? pairs.join('; ') : '—';
+  }
+}
+
+function checkQuestion(card, q) {
+  if (q.type === 'choice') {
+    const checked = card.querySelectorAll('input:checked');
+    const vals = Array.from(checked).map(i => i.value).sort();
+    const correctSorted = q.correct.slice().sort();
+    return JSON.stringify(vals) === JSON.stringify(correctSorted);
+  } else {
+    for (const leftKey of Object.keys(q.correct)) {
+      const zone = card.querySelector('.drop-zone[data-left="' + leftKey + '"]');
+      const chip = zone ? zone.querySelector('.chip') : null;
+      const chipKey = chip ? chip.dataset.key : null;
+      if (chipKey !== q.correct[leftKey]) return false;
+    }
+    return true;
+  }
+}
+
+function markQuestion(card, q, isCorrect) {
+  card.classList.add(isCorrect ? 'correct-card' : 'wrong-card');
+
+  if (q.type === 'choice') {
+    card.querySelectorAll('.option').forEach(label => {
+      const key = label.dataset.key;
+      const input = label.querySelector('input');
+      const isCorrectOpt = q.correct.includes(key);
+      if (isCorrectOpt) label.classList.add('correct-opt');
+      if (input.checked && !isCorrectOpt) label.classList.add('wrong-opt');
+    });
+  } else {
+    card.querySelectorAll('.drop-zone').forEach(zone => {
+      const leftKey = zone.dataset.left;
+      const correctKey = q.correct[leftKey];
+      const chip = zone.querySelector('.chip');
+      const chipKey = chip ? chip.dataset.key : null;
+      if (chipKey !== correctKey) {
+        zone.style.borderColor = 'var(--wrong)';
+        zone.style.background = '#fdeaea';
+      } else {
+        zone.style.borderColor = 'var(--correct)';
+        zone.style.background = '#e9f7ef';
+      }
+    });
+  }
+}
+
+/* ==================== СОБЫТИЯ ==================== */
+
+submitBtn.addEventListener('click', () => {
+  const cards = document.querySelectorAll('.question-card');
+  let correctCount = 0;
+  let wrongCount = 0;
+
+  cards.forEach(card => {
+    const q = questions.find(x => x.id == card.dataset.qid);
+    const isCorrect = checkQuestion(card, q);
+    if (isCorrect) correctCount++; else wrongCount++;
+    markQuestion(card, q, isCorrect);
+  });
+
+  const total = cards.length;
+  const score = Math.round(((correctCount - wrongCount) / total) * 100);
+
+  let scoreClass = 'score-bad';
+  if (score >= 50) scoreClass = 'score-good';
+  else if (score >= 0) scoreClass = 'score-mid';
+
+  let html = '<div class="result-section">';
+  html += '<div class="score-box ' + scoreClass + '">Итог: ' + score + ' баллов</div>';
+  html += '<p style="text-align:center;color:var(--muted);margin-top:-8px;">Правильно: ' + correctCount + ' · Неправильно/без ответа: ' + wrongCount + '</p>';
+
+  cards.forEach((card, idx) => {
+    const q = questions.find(x => x.id == card.dataset.qid);
+    const isCorrect = checkQuestion(card, q);
+    const userAns = getUserAnswerText(card, q);
+    const correctAns = getCorrectText(q);
+
+    html += '<div class="result-item">';
+    html += '<div class="result-q">' + (idx + 1) + '. ' + q.question + '</div>';
+    html += '<div class="result-line"><span class="label">Ваш ответ:</span> <span class="' + (isCorrect ? 'result-correct' : 'result-wrong') + '">' + userAns + '</span></div>';
+    if (!isCorrect) {
+      html += '<div class="result-line"><span class="label">Правильный ответ:</span> <span class="result-correct">' + correctAns + '</span></div>';
+    } else {
+      html += '<div class="result-line"><span class="result-ok">✓ Верно</span></div>';
+    }
+    html += '</div>';
+  });
+
+  html += '</div>';
+  resultArea.innerHTML = html;
+  resultArea.scrollIntoView({behavior: 'smooth', block: 'start'});
+
+  submitBtn.disabled = true;
+  submitBtn.style.display = 'none';
+  restartBtn.style.display = 'block';
+});
+
+restartBtn.addEventListener('click', initQuiz);
+
+initQuiz();
+</script>
+</body>
+</html>
