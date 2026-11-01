@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -34,6 +33,7 @@
   .q-num { background: var(--primary); color: #fff; font-weight: 700; font-size: 13px;
     border-radius: 6px; padding: 2px 9px; flex-shrink: 0; margin-top: 2px; }
   .q-text { font-weight: 600; font-size: 16px; }
+  .q-type-hint { font-size: 12px; color: var(--muted); font-weight: 400; display: block; margin-top: 2px; }
   .options { display: flex; flex-direction: column; gap: 8px; }
   .option { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px;
     border-radius: 8px; border: 1px solid var(--border); cursor: pointer;
@@ -723,6 +723,20 @@ function renderQuestion(q, index) {
   textWrap.className = 'q-text';
   textWrap.textContent = q.question;
 
+  // Подсказки по типу вопроса
+  const hint = document.createElement('span');
+  hint.className = 'q-type-hint';
+  if (q.type === 'choice') {
+    if (q.correct.length === 1) {
+      hint.textContent = 'Выберите один вариант ответа';
+    } else {
+      hint.textContent = 'Выберите все правильные варианты';
+    }
+  } else {
+    hint.textContent = 'Нажмите на вариант, затем на пустое поле для соответствия';
+  }
+  textWrap.appendChild(hint);
+
   header.appendChild(num);
   header.appendChild(textWrap);
   card.appendChild(header);
@@ -736,7 +750,7 @@ function renderQuestion(q, index) {
       label.dataset.key = opt.key;
 
       const input = document.createElement('input');
-      input.type = 'checkbox'; // Строго чекбоксы
+      input.type = 'checkbox';
       input.name = 'q_' + q.id + '_' + index;
       input.value = opt.key;
       
@@ -811,7 +825,7 @@ function renderQuestion(q, index) {
   form.appendChild(card);
 }
 
-/* ==================== TAP-TO-SELECT (Мобильная адаптация) ==================== */
+/* ==================== TAP-TO-SELECT ==================== */
 
 function setupTapToSelect(card) {
   const pool = card.querySelector('.chip-pool');
@@ -824,14 +838,12 @@ function setupTapToSelect(card) {
       const zone = chip.closest('.drop-zone');
       
       if (zone) {
-        // Если чип в зоне - вернуть в пул
         pool.appendChild(chip);
         zone.classList.remove('filled');
         chip.classList.remove('selected');
         selectedChip = null;
         updateProgress();
       } else {
-        // Если чип в пуле - выделить/снять выделение
         if (selectedChip === chip) {
           chip.classList.remove('selected');
           selectedChip = null;
@@ -847,12 +859,10 @@ function setupTapToSelect(card) {
   zones.forEach(zone => {
     zone.addEventListener('click', () => {
       if (selectedChip) {
-        // Если зона занята, вернуть старый чип в пул
         const existing = zone.querySelector('.chip');
         if (existing) {
           pool.appendChild(existing);
         }
-        // Переместить выбранный чип в зону
         zone.appendChild(selectedChip);
         zone.classList.add('filled');
         selectedChip.classList.remove('selected');
@@ -1016,9 +1026,7 @@ submitBtn.addEventListener('click', () => {
 
 restartBtn.addEventListener('click', initQuiz);
 
-// Запуск
 initQuiz();
 </script>
-
 </body>
 </html>
