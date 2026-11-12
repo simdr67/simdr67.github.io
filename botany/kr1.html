@@ -237,7 +237,7 @@
   <!-- Старт -->
   <section id="start" class="card start">
     <h2>Выбери тему</h2>
-    <p>После каждого ответа появится развёрнутая подсказка — читай её, даже если ответил верно.</p>
+    <p>После каждого ответа появится развёрнутая подсказка — читай её, даже если ответил верно. Варианты ответов перемешиваются автоматически.</p>
 
     <label class="toggle-wrap" for="randomToggle">
       <input type="checkbox" id="randomToggle" class="toggle-input">
@@ -327,7 +327,6 @@ const questions = [
     correct: 1,
     explain: "<strong>Тонопласт</strong> — одинарная мембрана центральной вакуоли. Плазмалемма — наружная мембрана клетки, кариолемма — оболочка ядра. В вакуоли находится клеточный сок: сахара, органические кислоты, гликозиды, алкалоиды, дубильные вещества, пигменты (антоцианы)."
   },
-  // ----- НОВЫЕ: Клетка -----
   {
     section: "Клетка", topic: "Форма клеток",
     q: "Клетки, у которых длина во много раз превышает ширину, называются…",
@@ -435,7 +434,6 @@ const questions = [
     correct: 1,
     explain: "<strong>Открытые</strong> пучки содержат камбий и способны к вторичному росту (двудольные, голосеменные). <strong>Закрытые</strong> пучки лишены камбия, окружены плотной склеренхимной обкладкой и не утолщаются (однодольные)."
   },
-  // ----- НОВЫЕ: Ткани -----
   {
     section: "Ткани", topic: "Покровные ткани",
     q: "Веламен — это…",
@@ -557,7 +555,6 @@ const questions = [
     correct: 0,
     explain: "<strong>Схизогенные</strong> каналы формируются за счёт расхождения (расщепления) клеток, лизигенные — за счёт растворения клеток. В хвоинке сосны каналы схизогенные, лежат в мезофилле; центральный пучок окружён эндодермой с поясками Каспари и трансфузионной паренхимой."
   },
-  // ----- НОВЫЕ: Органы -----
   {
     section: "Органы", topic: "Утолщение стебля",
     q: "За счёт чего идёт первичное утолщение стебля?",
@@ -608,6 +605,7 @@ let idx = 0;
 let score = 0;
 let answered = false;
 let currentSection = 'all';
+let correctDisplayIdx = 0; // позиция правильного ответа после перемешивания вариантов
 
 const els = {
   start: document.getElementById('start'),
@@ -660,13 +658,19 @@ function start(section) {
 function render() {
   const q = active[idx];
   answered = false;
+
+  // Перемешиваем варианты ответа: сохраняем текст и признак правильности
+  const opts = q.options.map((text, i) => ({ text, isCorrect: i === q.correct }));
+  shuffle(opts);
+  correctDisplayIdx = opts.findIndex(o => o.isCorrect);
+
   els.badge.textContent = q.section + ' • ' + q.topic;
   els.questionText.textContent = q.q;
   els.options.innerHTML = '';
-  q.options.forEach((opt, i) => {
+  opts.forEach((opt, i) => {
     const btn = document.createElement('button');
     btn.className = 'option';
-    btn.innerHTML = '<span class="letter">' + 'АБВГ'[i] + '</span><span>' + opt + '</span>';
+    btn.innerHTML = '<span class="letter">' + 'АБВГ'[i] + '</span><span>' + opt.text + '</span>';
     btn.addEventListener('click', () => select(i));
     els.options.appendChild(btn);
   });
@@ -685,10 +689,10 @@ function select(chosen) {
   const buttons = els.options.querySelectorAll('.option');
   buttons.forEach((b, j) => {
     b.classList.add('locked');
-    if (j === q.correct) b.classList.add('correct');
+    if (j === correctDisplayIdx) b.classList.add('correct');
     else if (j === chosen) b.classList.add('wrong');
   });
-  const isRight = chosen === q.correct;
+  const isRight = chosen === correctDisplayIdx;
   if (isRight) {
     score++;
     els.scoreLabel.textContent = 'Правильно: ' + score;
