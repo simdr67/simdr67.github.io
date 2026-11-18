@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест v2: Расширенный банк терминов</title>
+    <style>
+        :root {
+            --primary: #2980b9;
+            --correct: #27ae60;
+            --wrong: #c0392b;
+            --bg: #ecf0f1;
+            --text: #2c3e50;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 15px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h2 { text-align: center; color: var(--primary); margin-top: 0;}
+        .question-text {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+        .option-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #fff;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 1em;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .option-btn:hover { border-color: var(--primary); }
+        .option-btn.correct { background: var(--correct); color: white; border-color: var(--correct); }
+        .option-btn.wrong { background: var(--wrong); color: white; border-color: var(--wrong); }
+        .option-btn:disabled { cursor: not-allowed; }
+        
+        .inline-select {
+            padding: 5px;
+            font-size: 1em;
+            border-radius: 5px;
+            border: 2px solid var(--primary);
+            background: #f9f9f9;
+            margin: 0 5px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .feedback {
+            display: none;
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            background: #e8f4fd;
+            border-left: 5px solid var(--primary);
+            font-size: 0.95em;
+        }
+        .feedback.show { display: block; }
+        .next-btn {
+            display: none;
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        .next-btn.show { display: block; }
+        
+        .score { text-align: center; font-size: 1.2em; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Термины: Случайные 12</h2>
+    <div id="progress" style="text-align:center; margin-bottom: 15px; color: #7f8c8d;">Вопрос <span id="current-q">1</span> из <span id="total-q">12</span></div>
+    
+    <div id="quiz-content"></div>
+
+    <div id="result-container" style="display:none; text-align: center;">
+        <h3>Сессия завершена!</h3>
+        <p class="score" id="final-score"></p>
+        <p>Нажми кнопку ниже, чтобы получить новую случайную выборку из 12 вопросов.</p>
+        <button class="next-btn show" onclick="startNewQuiz()">Пройти новые 12 вопросов</button>
+    </div>
+</div>
+
+<script>
+    // БОЛЬШОЙ БАНК ВОПРОСОВ (26 штук)
+    const questionBank = [
+        {
+            type: "multiple",
+            question: "Что такое ФАЗА?",
+            options: [
+                "А) Совокупность однородных частей системы, имеющих одинаковый состав и свойства, отделенных видимыми границами",
+                "Б) Любое вещество, входящее в состав системы",
+                "В) Состояние системы, при котором протекают химические реакции"
+            ],
+            correct: 0,
+            explanation: "Фаза — часть системы, отделенная видимой границей. Пример: лед и вода — две разные фазы."
+        },
+        {
+            type: "multiple",
+            question: "Что такое НЕЗАВИСИМЫЕ КОМПОНЕНТЫ?",
+            options: [
+                "А) Все вещества, которые можно обнаружить в системе",
+                "Б) Минимальное число веществ, достаточное для образования как всей системы, так и любой её фазы",
+                "В) Только те вещества, которые находятся в избытке"
+            ],
+            correct: 1,
+            explanation: "Компоненты — это независимые составляющие. Например, в системе вода-лед компонент всего один (H2O), хотя фаз две."
+        },
+        {
+            type: "fill",
+            question: "ТЕРМОДИНАМИЧЕСКИЕ СТЕПЕНИ СВОБОДЫ — это число независимых параметров, которые можно изменять без изменения [___] и [___] фаз.",
+            parts: ["числа", "вида"],
+            options: ["числа", "вида", "массы", "объема", "цвета"],
+            explanation: "Классическое определение: число параметров, которые можно менять без изменения числа и вида (природы) фаз."
+        },
+        {
+            type: "multiple",
+            question: "Что такое ТРОЙНАЯ ТОЧКА на фазовой диаграмме?",
+            options: [
+                "А) Точка, где вещество плавится при атмосферном давлении",
+                "Б) Точка, в которой в равновесии находятся три фазы (например, твердая, жидкая и газообразная)",
+                "В) Точка пересечения осей координат"
+            ],
+            correct: 1,
+            explanation: "В тройной точке сосуществуют 3 фазы. Для воды это 0,01°C и 0,006 атм. Число степеней свободы там равно 0."
+        },
+        {
+            type: "multiple",
+            question: "Что такое ЭВТЕКТИКА?",
+            options: [
+                "А) Смесь, которая плавится при температуре выше температур плавления чистых компонентов",
+                "Б) Смесь, которая кристаллизуется при температуре ниже температур плавления чистых компонентов",
+                "В) Смесь, которая не проводит электрический ток"
+            ],
+            correct: 1,
+            explanation: "Эвтектика — самая низкоплавкая смесь. При её кристаллизации образуется смесь мелких кристаллов обоих компонентов."
+        },
+        {
+            type: "fill",
+            question: "ПРАВИЛО РЫЧАГА позволяет определить соотношение [___] сосуществующих фаз. Отношение масс фаз обратно пропорционально длинам отрезков [___].",
+            parts: ["масс", "ноды"],
+            options: ["масс", "ноды", "объемов", "температур", "давлений"],
+            explanation: "Нода (или коннода) — линия, соединяющая составы равновесных фаз. m1/m2 = l2/l1 (плечи рычага)."
+        },
+        {
+            type: "multiple",
+            question: "Что такое ИДЕАЛЬНЫЙ РАСТВОР?",
+            options: [
+                "А) Раствор, который кипит при постоянной температуре",
+                "Б) Раствор, образование которого не сопровождается тепловым эффектом (ΔH=0) и изменением объема (ΔV=0)",
+                "В) Раствор, в котором растворяемое вещество полностью диссоциирует на ионы"
+            ],
+            correct: 1,
+            explanation: "В идеальном растворе силы взаимодействия между молекулами одинаковы (А-А, В-В, А-В), поэтому нет выделения/поглощения тепла."
+        },
+        {
+            type: "fill",
+            question: "ПЕРВЫЙ ЗАКОН КОНОВАЛОВА: Насыщенный пар по сравнению с равновесным раствором относительно богаче тем компонентом, добавление которого в систему [___] общее давление пара.",
+            parts: ["повышает"],
+            options: ["повышает", "понижает", "не меняет"],
+            explanation: "Если добавление компонента повышает давление пара — значит, он более летучий, и его доля в паре будет больше."
+        },
+        {
+            type: "multiple",
+            question: "Что такое АЗЕОТРОПНАЯ СМЕСЬ?",
+            options: [
+                "А) Смесь, которую невозможно разделить перегонкой, так как состав пара равен составу жидкости",
+                "Б) Смесь двух взаимно нерастворимых жидкостей",
+                "В) Смесь, которая замерзает при постоянной температуре"
+            ],
+            correct: 0,
+            explanation: "Азеотроп (нераздельнокипящая смесь). На диаграмме кипения ей соответствует точка экстремума (максимума или минимума)."
+        },
+        {
+            type: "multiple",
+            question: "Что такое КОЛЛИГАТИВНЫЕ СВОЙСТВА?",
+            options: [
+                "А) Свойства, зависящие от химической природы растворенного вещества",
+                "Б) Свойства растворов, которые зависят от концентрации частиц, но не зависят от их природы",
+                "В) Свойства, которые проявляются только у концентрированных растворов"
+            ],
+            correct: 1,
+            explanation: "Коллигативные (от лат. colligatus — собирать вместе) — это осмос, понижение T замерзания, повышение T кипения."
+        },
+        {
+            type: "fill",
+            question: "ЗАКОН РАСПРЕДЕЛЕНИЯ НЕРНСТА: Отношение равновесных [___] распределяемого вещества в двух несмешивающихся жидкостях при постоянной температуре есть величина постоянная.",
+            parts: ["концентраций"],
+            options: ["концентраций", "масс", "объемов", "температур"],
+            explanation: "K = C1/C2. Используется для расчетов экстракции."
+        },
+        {
+            type: "multiple",
+            question: "Что происходит с растворимостью в системах с ВКТР (верхней критической температурой растворения) при нагревании?",
+            options: [
+                "А) Растворимость увеличивается, и при определенной T жидкости смешиваются неограниченно",
+                "Б) Растворимость уменьшается, и жидкости расслаиваются",
+                "В) Растворимость не зависит от температуры"
+            ],
+            correct: 0,
+            explanation: "ВКТР (например, вода-фенол). С ростом T взаимная растворимость растет, выше критической точки образуется один раствор."
+        },
+        {
+            type: "multiple",
+            question: "Что такое ГОМОГЕННАЯ система?",
+            options: [
+                "А) Система, состоящая из двух и более фаз",
+                "Б) Система, состоящая из одной фазы (например, раствор соли в воде)",
+                "В) Система, в которой протекает химическая реакция"
+            ],
+            correct: 1,
+            explanation: "Гомогенная — однофазная система. Гетерогенная — многофазная (например, вода + лед)."
+        },
+        {
+            type: "multiple",
+            question: "Что такое ФИГУРАТИВНАЯ ТОЧКА?",
+            options: [
+                "А) Точка на диаграмме, показывающая состояние системы (температуру, давление, состав)",
+                "Б) Точка, в которой вещество плавится",
+                "В) Точка пересечения кривых на графике"
+            ],
+            correct: 0,
+            explanation: "Любая точка на фазовой диаграмме, которая задает параметры системы (T, P, x)."
+        },
+        {
+            type: "multiple",
+            question: "Какие вещества называются ИЗОМОРФНО кристаллизующимися?",
+            options: [
+                "А) Те, которые образуют эвтектику",
+                "Б) Те, которые неограниченно растворимы друг в друге как в жидком, так и в твердом состоянии",
+                "В) Те, которые не растворяются друг в друге"
+            ],
+            correct: 1,
+            explanation: "Изоморфные вещества образуют твердые растворы (например, сплавы золота и серебра). Неизоморфные — образуют механическую смесь кристаллов."
+        },
+        {
+            type: "multiple",
+            question: "Что такое НОДА (коннода) на диаграмме?",
+            options: [
+                "А) Линия, соединяющая точки составов равновесных фаз",
+                "Б) Линия, параллельная оси температур",
+                "В) Кривая кипения"
+            ],
+            correct: 0,
+            explanation: "Нода соединяет составы жидкости и пара (или двух жидких фаз), находящихся в равновесии при данной температуре."
+        },
+        {
+            type: "fill",
+            question: "ВТОРОЙ ЗАКОН КОНОВАЛОВА: Экстремумы на кривых полного давления пара (или температур кипения) отвечают такому равновесию, при котором состав обеих фаз [___].",
+            parts: ["одинаков"],
+            options: ["одинаков", "различен", "независим"],
+            explanation: "В точке азеотропа (экстремума) состав жидкости и пара совпадает."
+        },
+        {
+            type: "multiple",
+            question: "Что происходит с растворимостью в системах с НКТР (нижней критической температурой)?",
+            options: [
+                "А) При нагревании растворимость падает, и жидкости расслаиваются",
+                "Б) При нагревании растворимость растет",
+                "В) Растворимость постоянна"
+            ],
+            correct: 0,
+            explanation: "НКТР (например, вода-триэтиламин). Ниже критической T они смешиваются неограниченно, а при нагревании — расслаиваются."
+        },
+        {
+            type: "multiple",
+            question: "Что такое ЭКСТРАКЦИЯ?",
+            options: [
+                "А) Извлечение растворенного вещества из раствора с помощью другого растворителя",
+                "Б) Разделение смеси перегонкой",
+                "В) Осаждение вещества с помощью реагента"
+            ],
+            correct: 0,
+            explanation: "Жидкостная экстракция основана на законе распределения Нернста. Экстрагент не смешивается с исходным растворителем."
+        },
+        {
+            type: "multiple",
+            question: "Какой метод основан на ПОНИЖЕНИИ температуры замерзания раствора?",
+            options: [
+                "А) Эбулиоскопия",
+                "Б) Криоскопия",
+                "В) Осмометрия"
+            ],
+            correct: 1,
+            explanation: "Криоскопия (криометрия). Эбулиоскопия — это повышение температуры кипения."
+        },
+        {
+            type: "multiple",
+            question: "Какой метод основан на ПОВЫШЕНИИ температуры кипения раствора?",
+            options: [
+                "А) Эбулиоскопия",
+                "Б) Криоскопия",
+                "В) Экстракция"
+            ],
+            correct: 0,
+            explanation: "Эбулиоскопия (эбулиометрия). ΔT_кип = E * m (моляльная концентрация)."
+        },
+        {
+            type: "multiple",
+            question: "Что такое ОСМОС?",
+            options: [
+                "А) Переход растворителя через полупроницаемую мембрану в раствор с большей концентрацией",
+                "Б) Переход растворенного вещества через мембрану",
+                "В) Испарение жидкости"
+            ],
+            correct: 0,
+            explanation: "Осмос — самопроизвольный переход молекул растворителя в сторону раствора с большей концентрацией."
+        },
+        {
+            type: "fill",
+            question: "ЗАКОН ГЕНРИ: Растворимость газа в жидкости пропорциональна его [___] давлению над раствором.",
+            parts: ["парциальному"],
+            options: ["парциальному", "общему", "осмотическому"],
+            explanation: "P = k * x. Чем выше давление газа над жидкостью, тем больше газа растворяется."
+        },
+        {
+            type: "fill",
+            question: "УСЛОВИЕ ФАЗОВОГО РАВНОВЕСИЯ: При равновесии химические [___] каждого компонента во всех фазах равны.",
+            parts: ["потенциалы"],
+            options: ["потенциалы", "концентрации", "массы"],
+            explanation: "μ(фаза 1) = μ(фаза 2). Это главное термодинамическое условие равновесия."
+        },
+        {
+            type: "multiple",
+            question: "Для воды на диаграмме P-T кривая плавления (лед-вода) имеет отрицательный наклон (dP/dT < 0). Почему?",
+            options: [
+                "А) Потому что плотность льда меньше плотности воды (ΔV < 0)",
+                "Б) Потому что вода кипит при 100°C",
+                "В) Потому что теплота плавления отрицательна"
+            ],
+            correct: 0,
+            explanation: "Лед занимает больший объем, чем вода. При плавлении объем уменьшается (ΔV < 0), поэтому с ростом давления лед плавится при более низкой температуре."
+        },
+        {
+            type: "multiple",
+            question: "Что такое КОНГРУЭНТНОЕ плавление?",
+            options: [
+                "А) Плавление химического соединения без изменения состава (соединение плавится как единое целое)",
+                "Б) Плавление с разложением на компоненты",
+                "В) Плавление смеси при постоянной температуре"
+            ],
+            correct: 0,
+            explanation: "Конгруэнтное плавление — когда состав жидкости совпадает с составом твердой фазы (плавление без разложения)."
+        }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    let activeQuestions = [];
+    
+    const contentDiv = document.getElementById('quiz-content');
+    const resultDiv = document.getElementById('result-container');
+    const progressSpan = document.getElementById('current-q');
+    const progressContainer = document.getElementById('progress');
+    const totalSpan = document.getElementById('total-q');
+
+    // Функция для перемешивания массива (алгоритм Фишера-Йетса)
+    function shuffleArray(array) {
+        let currentIndex = array.length, randomIndex;
+        while (currentIndex != 0) {
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
+        return array;
+    }
+
+    function startNewQuiz() {
+        // Перемешиваем банк и берем первые 12
+        activeQuestions = shuffleArray([...questionBank]).slice(0, 12);
+        currentQuestion = 0;
+        score = 0;
+        
+        contentDiv.style.display = 'block';
+        resultDiv.style.display = 'none';
+        progressContainer.style.display = 'block';
+        totalSpan.innerText = activeQuestions.length;
+        
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        if (currentQuestion >= activeQuestions.length) {
+            showResult();
+            return;
+        }
+
+        progressSpan.innerText = currentQuestion + 1;
+        const q = activeQuestions[currentQuestion];
+        contentDiv.innerHTML = '';
+
+        const qText = document.createElement('div');
+        qText.className = 'question-text';
+        qText.innerHTML = q.question;
+        contentDiv.appendChild(qText);
+
+        if (q.type === 'multiple') {
+            const optionsDiv = document.createElement('div');
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkMultiple(index, btn, q.correct, q.explanation, optionsDiv);
+                optionsDiv.appendChild(btn);
+            });
+            contentDiv.appendChild(optionsDiv);
+        } else if (q.type === 'fill') {
+            const fillDiv = document.createElement('div');
+            fillDiv.style.marginBottom = '15px';
+            fillDiv.style.fontSize = '1.1em';
+            
+            let textHTML = q.question;
+            q.parts.forEach((part, i) => {
+                const selectHTML = `<select class="inline-select" id="fill-${i}">
+                    <option value="" disabled selected>...</option>
+                    ${q.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                </select>`;
+                textHTML = textHTML.replace('[___]', selectHTML);
+            });
+
+            fillDiv.innerHTML = textHTML;
+            contentDiv.appendChild(fillDiv);
+
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'option-btn';
+            checkBtn.innerText = 'Проверить';
+            checkBtn.style.background = 'var(--primary)';
+            checkBtn.style.color = 'white';
+            checkBtn.style.textAlign = 'center';
+            checkBtn.onclick = () => checkFill(q, fillDiv, checkBtn);
+            
+            contentDiv.appendChild(checkBtn);
+        }
+    }
+
+    function checkMultiple(selectedIndex, btn, correctIndex, explanation, optionsContainer) {
+        const buttons = optionsContainer.querySelectorAll('.option-btn');
+        buttons.forEach(b => b.disabled = true);
+
+        if (selectedIndex === correctIndex) {
+            btn.classList.add('correct');
+            score++;
+        } else {
+            btn.classList.add('wrong');
+            buttons[correctIndex].classList.add('correct');
+        }
+        showFeedback(explanation);
+    }
+
+    function checkFill(q, container, checkBtn) {
+        checkBtn.style.display = 'none';
+        let allCorrect = true;
+
+        q.parts.forEach((part, i) => {
+            const select = document.getElementById('fill-' + i);
+            if (select.value !== part) {
+                allCorrect = false;
+                select.style.borderColor = 'var(--wrong)';
+                select.style.color = 'var(--wrong)';
+            } else {
+                select.style.borderColor = 'var(--correct)';
+                select.style.color = 'var(--correct)';
+            }
+            select.disabled = true;
+        });
+
+        if (allCorrect) score++;
+        showFeedback(q.explanation);
+    }
+
+    function showFeedback(text) {
+        const feedbackDiv = document.createElement('div');
+        feedbackDiv.className = 'feedback show';
+        feedbackDiv.innerHTML = `<strong>Пояснение:</strong> ${text}`;
+        contentDiv.appendChild(feedbackDiv);
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'next-btn show';
+        nextBtn.innerText = currentQuestion === activeQuestions.length - 1 ? 'Показать результат' : 'Следующий термин';
+        nextBtn.onclick = () => {
+            currentQuestion++;
+            renderQuestion();
+        };
+        contentDiv.appendChild(nextBtn);
+    }
+
+    function showResult() {
+        contentDiv.style.display = 'none';
+        resultDiv.style.display = 'block';
+        progressContainer.style.display = 'none';
+        
+        const finalScore = document.getElementById('final-score');
+        finalScore.innerText = `Твой результат: ${score} из ${activeQuestions.length}`;
+        finalScore.style.color = score >= 9 ? 'var(--correct)' : 'var(--wrong)';
+    }
+
+    // Запуск при загрузке
+    startNewQuiz();
+</script>
+</body>
+</html>

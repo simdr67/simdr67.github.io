@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Экспресс-тест КР (Микс Вариантов)</title>
+    <style>
+        :root {
+            --primary: #d35400; /* Оранжевый акцент для контраста */
+            --correct: #27ae60;
+            --wrong: #c0392b;
+            --bg: #fdfbf7;
+            --text: #2c3e50;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 15px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border-top: 5px solid var(--primary);
+        }
+        h2 { text-align: center; color: var(--primary); margin-top: 0; font-size: 1.4em;}
+        .question-text {
+            font-weight: bold;
+            font-size: 1.05em;
+            margin-bottom: 15px;
+        }
+        .option-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #fff;
+            border: 2px solid #dcdde1;
+            border-radius: 8px;
+            font-size: 0.95em;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .option-btn:hover { border-color: var(--primary); }
+        .option-btn.correct { background: var(--correct); color: white; border-color: var(--correct); }
+        .option-btn.wrong { background: var(--wrong); color: white; border-color: var(--wrong); }
+        .option-btn:disabled { cursor: not-allowed; }
+        
+        .feedback {
+            display: none;
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            background: #fff3e0;
+            border-left: 5px solid var(--primary);
+            font-size: 0.95em;
+        }
+        .feedback.show { display: block; }
+        .next-btn {
+            display: none;
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        .next-btn.show { display: block; }
+        
+        .score { text-align: center; font-size: 1.2em; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Микс: Вар. 4 + Вар. X</h2>
+    <div id="progress" style="text-align:center; margin-bottom: 15px; color: #7f8c8d;">Задача <span id="current-q">1</span> из <span id="total-q">10</span></div>
+    
+    <div id="quiz-content"></div>
+
+    <div id="result-container" style="display:none; text-align: center;">
+        <h3>Тест завершен!</h3>
+        <p class="score" id="final-score"></p>
+        <p>Пройди еще раз, чтобы увидеть другие вопросы из банка.</p>
+        <button class="next-btn show" onclick="startNewQuiz()">Начать новые 10 вопросов</button>
+    </div>
+</div>
+
+<script>
+    // БАНК ВОПРОСОВ (Микс из Варианта 4 и Варианта X)
+    const questionBank = [
+        {
+            type: "multiple",
+            question: "Вар. 4 (Задача 1). Можно ли для расчета теплоты плавления льда использовать уравнение dP/dT = ΔH/(TΔV)?",
+            options: [
+                "А) Нельзя, так как уравнение выведено только для испарения",
+                "Б) Можно, если подставить ΔH пл, T пл и P, но нужно помнить, что для льда dP/dT < 0",
+                "В) Можно, но только при постоянном давлении"
+            ],
+            correct: 1,
+            explanation: "Уравнение Клапейрона-Клаузиуса (в дифференциальной форме) работает для ВСЕХ фазовых переходов 1-го рода. Для воды V(ж) < V(тв), поэтому ΔV < 0 и производная dP/dT отрицательна."
+        },
+        {
+            type: "multiple",
+            question: "Вар. X (Задача 1). Почему лед плавится, а сухой лед (CO2) сублимируется при нормальных условиях?",
+            options: [
+                "А) У CO2 выше теплота плавления",
+                "Б) Тройная точка воды лежит ниже 101,3 кПа, а тройная точка CO2 — выше",
+                "В) Лед — кристаллическое вещество, а CO2 — аморфное"
+            ],
+            correct: 1,
+            explanation: "При атмосферном давлении (101,3 кПа) мы находимся выше тройной точки воды (0,61 кПа), поэтому видим жидкую воду. Для CO2 тройная точка — 518 кПа, поэтому при 101,3 кПа жидкой фазы нет, идет сразу сублимация."
+        },
+        {
+            type: "multiple",
+            question: "Вар. 4 и Вар. X (Задача 2/3). От чего зависит криоскопическая (K) и эбулиоскопическая (E) постоянные?",
+            options: [
+                "А) От природы растворенного вещества",
+                "Б) От концентрации раствора",
+                "В) Только от свойств растворителя (его T замерзания/кипения и теплоты фазового перехода)"
+            ],
+            correct: 2,
+            explanation: "Эти константы — характеристики растворителя. Формулы: K = R*T_зам^2 / (1000*l_пл); E = R*T_кип^2 / (1000*l_исп). От того, что вы растворили (соль или сахар), константа не меняется."
+        },
+        {
+            type: "multiple",
+            question: "Вар. 4 (Задача 3). Чему равно число термодинамических степеней свободы (С) у воды при P = 1,0133*10^5 Па и T = 373 К?",
+            options: [
+                "А) С = 0 (система инвариантна)",
+                "Б) С = 1 (система моновариантна), если считать при постоянном давлении, то С = 0",
+                "В) С = 2 (система бивариантна)"
+            ],
+            correct: 1,
+            explanation: "При 373 К (100°C) и 1 атм вода кипит, значит, в равновесии 2 фазы (ж + п). По правилу Гиббса: С = K - Ф + 2 = 1 - 2 + 2 = 1. (Если зафиксировать P, то С = 1 - 2 + 1 = 0)."
+        },
+        {
+            type: "multiple",
+            question: "Вар. 4 (Задача 4) и Вар. X (Задача 4). Как найти мольную долю компонента в паре (y), если известны его парциальное давление (Pi) и общее давление (Pобщ)?",
+            options: [
+                "А) y = Pi / Pобщ (Закон Дальтона)",
+                "Б) y = Pобщ / Pi",
+                "В) y = Pi * Pобщ"
+            ],
+            correct: 0,
+            explanation: "Мольная доля газа в смеси равна отношению его парциального давления к общему давлению. (Пример Вар. 4: 20,5 / 31,6 = 0,648)."
+        },
+        {
+            type: "multiple",
+            question: "Вар. 4 (Задача 6). По какой формуле рассчитывается энергия Гиббса при образовании идеального раствора?",
+            options: [
+                "А) ΔG = ΔH - TΔS",
+                "Б) ΔG = RT(n1*ln(x1) + n2*ln(x2))",
+                "В) ΔG = -RT*ln(K)"
+            ],
+            correct: 1,
+            explanation: "Для идеального раствора ΔH=0, поэтому ΔG = -TΔS. Энтропия смешения рассчитывается через логарифмы мольных долей, отсюда формула Б. Не забудь перевести массу в моли (n = m/M)."
+        },
+        {
+            type: "multiple",
+            question: "Вар. 4 (Задача 7). Для расчета температуры плавления воска под давлением 10 атм используется уравнение Клапейрона-Клаузиуса. Какая формула правильная (в интегральной форме для малых ΔT)?",
+            options: [
+                "А) ΔT = (ΔP * T * ΔV) / ΔH",
+                "Б) ΔT = (ΔH * T) / (ΔP * ΔV)",
+                "В) ΔT = (ΔP * ΔV) / (ΔH * T)"
+            ],
+            correct: 0,
+            explanation: "Из dP/dT = ΔH / (T*ΔV) выражаем ΔT: ΔT = (ΔP * T * ΔV) / ΔH. Внимание: ΔP нужно перевести в Паскали (9 атм = 911925 Па), а ΔV — в м3/г, чтобы сошлось с ΔH в Дж/г."
+        },
+        {
+            type: "multiple",
+            question: "Вар. X (Задача 6). Смесь йодбензола и бензола кипит при 100°C и 101,3 кПа. Как найти состав жидкости, если известны давления паров чистых компонентов (P0)?",
+            options: [
+                "А) По закону Рауля: Pобщ = P0(йод)*x + P0(бенз)*(1-x)",
+                "Б) По закону Генри: P = k*x",
+                "В) По правилу рычага"
+            ],
+            correct: 0,
+            explanation: "Для идеальных растворов общее давление — это сумма парциальных давлений: Pобщ = P1 + P2 = P0_1*x1 + P0_2*x2. Решаешь линейное уравнение относительно x (мольной доли в жидкости)."
+        },
+        {
+            type: "multiple",
+            question: "Вар. 4 (Задача 8) и Вар. X (Задача 7). Перегонка с водяным паром (нафталин + вода). Какая формула для массового отношения m(H2O) / m(орг)?",
+            options: [
+                "А) (P0(H2O) * M(H2O)) / (P0(орг) * M(орг))",
+                "Б) (P0(H2O) * M(орг)) / (P0(орг) * M(H2O))",
+                "В) P0(H2O) / P0(орг)"
+            ],
+            correct: 0,
+            explanation: "Массы пропорциональны давлениям и молярным массам. m1/m2 = (P1*M1)/(P2*M2). Это позволяет найти, сколько грамм воды уйдет в дистиллят вместе с 20 г нафталина."
+        },
+        {
+            type: "multiple",
+            question: "Вар. 4 (Задача 9) и Вар. X (Задача 9). Экстракция фенола. Как найти массу вещества, оставшегося в водной фазе после n экстракций?",
+            options: [
+                "А) m_n = m_0 * (V_водн / (V_водн + D*V_орг))^n",
+                "Б) m_n = m_0 * (D*V_орг / V_водн)^n",
+                "В) m_n = m_0 / n"
+            ],
+            correct: 0,
+            explanation: "Это формула остатка после многократной экстракции. D — коэффициент распределения (C_орг/C_водн). Чем больше n, тем меньше вещества останется (дробная экстракция эффективнее)."
+        },
+        {
+            type: "multiple",
+            question: "Вар. X (Задача 2). Для диаграмм с ВКТР (верхней критической температурой растворения) с ростом температуры характерно...",
+            options: [
+                "А) Увеличение взаимной растворимости компонентов",
+                "Б) Уменьшение взаимной растворимости компонентов",
+                "В) Сохранение постоянства взаимной растворимости"
+            ],
+            correct: 0,
+            explanation: "ВКТР — это температура, выше которой жидкости смешиваются неограниченно. С ростом температуры мы приближаемся к этой точке, значит, растворимость растет."
+        },
+        {
+            type: "multiple",
+            question: "Теория (Вар. 4, Вопрос 10). Что такое КРИОСКОПИЯ?",
+            options: [
+                "А) Метод определения молярной массы по повышению температуры кипения",
+                "Б) Метод определения молярной массы по понижению температуры замерзания раствора",
+                "В) Метод разделения смеси перегонкой"
+            ],
+            correct: 1,
+            explanation: "Криоскопия (криометрия) основана на законе Рауля: ΔT_зам = K * m. По понижению температуры замерзания находят концентрацию, а затем и молярную массу."
+        },
+        {
+            type: "multiple",
+            question: "Теория (Вар. X, Вопрос 10). В чем суть связи криоскопической постоянной со свойствами растворителя?",
+            options: [
+                "А) K = R*T_зам^2 / (1000 * l_пл)",
+                "Б) K = R*T_кип / (1000 * l_исп)",
+                "В) K = P0 / (1000 * M)"
+            ],
+            correct: 0,
+            explanation: "Криоскопическая постоянная K зависит от температуры замерзания растворителя (в квадрате) и его удельной теплоты плавления. Это прямое следствие уравнения Клапейрона-Клаузиуса."
+        },
+        {
+            type: "multiple",
+            question: "Теория (Вар. X, Вопрос 10). Что такое КОЛЛИГАТИВНЫЕ СВОЙСТВА растворов?",
+            options: [
+                "А) Свойства, зависящие от химической природы растворенного вещества",
+                "Б) Свойства, зависящие от концентрации частиц, но не зависящие от их природы",
+                "В) Свойства, которые проявляются только у концентрированных растворов"
+            ],
+            correct: 1,
+            explanation: "Коллигативные (от лат. colligatus — собирать вместе) — это осмос, понижение T замерзания, повышение T кипения. Важно только *сколько* частиц, а не *каких*."
+        }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    let activeQuestions = [];
+    
+    const contentDiv = document.getElementById('quiz-content');
+    const resultDiv = document.getElementById('result-container');
+    const progressSpan = document.getElementById('current-q');
+    const progressContainer = document.getElementById('progress');
+    const totalSpan = document.getElementById('total-q');
+
+    function shuffleArray(array) {
+        let currentIndex = array.length, randomIndex;
+        while (currentIndex != 0) {
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
+        return array;
+    }
+
+    function startNewQuiz() {
+        // Берем 10 случайных вопросов из 14
+        activeQuestions = shuffleArray([...questionBank]).slice(0, 10);
+        currentQuestion = 0;
+        score = 0;
+        
+        contentDiv.style.display = 'block';
+        resultDiv.style.display = 'none';
+        progressContainer.style.display = 'block';
+        totalSpan.innerText = activeQuestions.length;
+        
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        if (currentQuestion >= activeQuestions.length) {
+            showResult();
+            return;
+        }
+
+        progressSpan.innerText = currentQuestion + 1;
+        const q = activeQuestions[currentQuestion];
+        contentDiv.innerHTML = '';
+
+        const qText = document.createElement('div');
+        qText.className = 'question-text';
+        qText.innerHTML = q.question;
+        contentDiv.appendChild(qText);
+
+        const optionsDiv = document.createElement('div');
+        q.options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkMultiple(index, btn, q.correct, q.explanation, optionsDiv);
+            optionsDiv.appendChild(btn);
+        });
+        contentDiv.appendChild(optionsDiv);
+    }
+
+    function checkMultiple(selectedIndex, btn, correctIndex, explanation, optionsContainer) {
+        const buttons = optionsContainer.querySelectorAll('.option-btn');
+        buttons.forEach(b => b.disabled = true);
+
+        if (selectedIndex === correctIndex) {
+            btn.classList.add('correct');
+            score++;
+        } else {
+            btn.classList.add('wrong');
+            buttons[correctIndex].classList.add('correct');
+        }
+        showFeedback(explanation);
+    }
+
+    function showFeedback(text) {
+        const feedbackDiv = document.createElement('div');
+        feedbackDiv.className = 'feedback show';
+        feedbackDiv.innerHTML = `<strong>Пояснение:</strong> ${text}`;
+        contentDiv.appendChild(feedbackDiv);
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'next-btn show';
+        nextBtn.innerText = currentQuestion === activeQuestions.length - 1 ? 'Показать результат' : 'Следующая задача';
+        nextBtn.onclick = () => {
+            currentQuestion++;
+            renderQuestion();
+        };
+        contentDiv.appendChild(nextBtn);
+    }
+
+    function showResult() {
+        contentDiv.style.display = 'none';
+        resultDiv.style.display = 'block';
+        progressContainer.style.display = 'none';
+        
+        const finalScore = document.getElementById('final-score');
+        finalScore.innerText = `Твой результат: ${score} из ${activeQuestions.length}`;
+        finalScore.style.color = score >= 8 ? 'var(--correct)' : 'var(--wrong)';
+    }
+
+    startNewQuiz();
+</script>
+</body>
+</html>
